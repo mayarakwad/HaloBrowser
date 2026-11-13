@@ -2,6 +2,8 @@
 
 A fast, light web browser for Windows, written in Rust.
 
+**[⬇ Download the latest version](https://github.com/mayarakwad/HaloBrowser/releases/latest)** — get `HaloSetup.exe` and open it.
+
 Pages are drawn by **Blink** and run on the **V8** JavaScript engine (through the Microsoft Edge WebView2 runtime that ships with Windows 10 and 11). Everything around the page — tabs, address bar, themes, settings, downloads and extensions — is Halo's own code.
 
 ## Features
@@ -23,7 +25,7 @@ Pages are drawn by **Blink** and run on the **V8** JavaScript engine (through th
 
 ## Install
 
-Download **HaloSetup.exe** (from the Releases page, or from the latest run in the **Actions** tab) and open it. The setup wizard:
+Download **HaloSetup.exe** from the [Releases page](https://github.com/mayarakwad/HaloBrowser/releases/latest) and open it. Windows may say *Windows protected your PC* because Halo isn't code-signed yet: click **More info → Run anyway**. The setup wizard:
 
 1. welcomes you (and offers to update an existing install, keeping your data),
 2. asks where to install (default `%LOCALAPPDATA%\Programs\Halo`) and whether to add Start menu and desktop shortcuts and register Halo as a web browser,
@@ -49,6 +51,10 @@ copy target\release\halo-browser.exe dist\HaloSetup.exe
 ```
 
 Every push to GitHub builds Halo automatically (see the **Actions** tab); the finished `HaloSetup.exe` is attached to each run as a download.
+
+## Publishing a release
+
+See [RELEASING.md](RELEASING.md) for a step-by-step guide. In short: publish a release on GitHub with a tag like `v0.2.0` and GitHub builds and attaches `HaloSetup.exe` automatically.
 
 ## Keyboard shortcuts
 
