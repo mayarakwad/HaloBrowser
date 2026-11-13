@@ -15,7 +15,7 @@ Pages are drawn by **Blink** and run on the **V8** JavaScript engine (through th
 - **Extensions** — add them from the Chrome Web Store with “Add to Halo” in the address bar, or from a link, a .crx/.zip file, or an unpacked folder. One-click ad blocking with uBlock Origin Lite.
 - **Downloads** — a downloads list (Ctrl+J) with open, show in folder, retry, and a choice of save location.
 - **Settings** (Ctrl+,) — appearance, start-up and home page, search and address bar, tabs, privacy and security (HTTPS-only, pop-up blocking, clear on quit), site permissions (camera, microphone, location, notifications…), downloads, extensions, system (graphics acceleration, proxy, user agent) and about.
-- **Accounts** — sign in with Google or create a Halo account, in the setup wizard or Settings → Account (see [google/README.md](google/README.md) to turn on Google sign-in).
+- **Accounts** — sign in with Google or create a Halo account, in the setup wizard or Settings → Account (see [google/README.md](google/README.md) to turn on Google sign-in; the settings are in Google Cloud's **Google Auth Platform**).
 - **Animations** — smooth tab, panel and theme transitions, with a switch to turn them off.
 
 ## Requirements
