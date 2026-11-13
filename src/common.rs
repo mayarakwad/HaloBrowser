@@ -101,6 +101,7 @@ pub enum Ev {
     ExtList(Vec<crate::ext::EngineExt>),
     ExtChanged,
     Account(Result<crate::store::Account, String>),
+    GoogleUrl(String),
 }
 
 /// What the page handlers (which may run on other threads) need to read.
@@ -173,6 +174,7 @@ pub struct App {
     pub account_cancel: Arc<std::sync::atomic::AtomicBool>,
     pub account_wait: bool,
     pub account_error: String,
+    pub account_url: String,
 }
 
 pub fn now_secs() -> u64 {

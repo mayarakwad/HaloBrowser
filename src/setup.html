@@ -232,8 +232,10 @@ function paintAccount() {
     return;
   }
   if (A.waiting) {
-    box.innerHTML = '<div class="wait"><span class="spin"></span><div style="flex:1">Finish signing in in your web browser, then come back here.</div><button class="btn ghost" id="gCancel">Cancel</button></div>';
+    box.innerHTML = '<div class="wait"><span class="spin"></span><div style="flex:1">Finish signing in in your web browser, then come back here.</div><button class="btn ghost" id="gCancel">Cancel</button></div>' +
+      '<div class="gnote" style="margin-top:10px;line-height:1.6">Browser didn\u2019t open? <a href="#" id="gAgain" style="color:var(--accent)">Open the Google sign-in page</a>.<br>If Google says <b>Access blocked</b>, add your Google account under <b>Test users</b> in Google Auth Platform \u2192 Audience, or press <b>Publish app</b> there.</div>';
     $('#gCancel').onclick = () => post({ cmd: 'googleCancel' });
+    $('#gAgain').onclick = e => { e.preventDefault(); if (A.url) post({ cmd: 'openUrl', url: A.url }); };
     return;
   }
   const create = A.tab === 'create';
@@ -271,6 +273,7 @@ function start() {
 }
 
 window.setup = {
+  googleUrl(u) { A.url = u; if (A.waiting) paintAccount(); },
   account(profile, err) { A.waiting = false; if (profile) { A.acct = profile; A.err = ''; } else { A.err = err || ''; } paintAccount(); paint(); },
   setDir(d) { opts.dir = d; $('#dir').value = d; },
   progress(pct, text) {

@@ -463,9 +463,18 @@ impl App {
                     self.account_cancel.store(false, std::sync::atomic::Ordering::SeqCst);
                     let (p, c) = (self.proxy.clone(), self.account_cancel.clone());
                     std::thread::spawn(move || {
-                        let _ = p.send_event(Ev::Account(crate::account::google_sign_in(c)));
+                        let p2 = p.clone();
+                        let on_url = move |u: String| {
+                            let _ = p2.send_event(Ev::GoogleUrl(u));
+                        };
+                        let _ = p.send_event(Ev::Account(crate::account::google_sign_in(c, &on_url)));
                     });
                     self.push();
+                }
+            }
+            "googleAgain" => {
+                if self.account_url.starts_with("https://accounts.google.com/") {
+                    crate::account::open_in_browser(&self.account_url);
                 }
             }
             "googleCancel" => self.account_cancel.store(true, std::sync::atomic::Ordering::SeqCst),
@@ -626,6 +635,7 @@ impl App {
             Ev::ExtList(list) => self.ext_list(list),
             Ev::ExtChanged => self.ext_refresh(),
             Ev::Account(r) => self.signed_in(r),
+            Ev::GoogleUrl(u) => self.account_url = u,
         }
     }
 }

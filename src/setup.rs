@@ -38,6 +38,7 @@ pub enum Mode {
 enum SEv {
     Ui(String),
     Account(Result<crate::store::Account, String>),
+    GoogleUrl(String),
     Progress(u32, String),
     Done(Result<(), String>),
 }
@@ -477,6 +478,9 @@ pub fn run(mode: Mode, shot: Option<PathBuf>) {
                 };
                 let _ = webview.evaluate_script(&format!("setup.account({arg})"));
             }
+            Event::UserEvent(SEv::GoogleUrl(u)) => {
+                let _ = webview.evaluate_script(&format!("setup.googleUrl({})", Value::String(u)));
+            }
             Event::UserEvent(SEv::Done(r)) => {
                 let arg = match r {
                     Ok(()) => "null".to_string(),
@@ -536,8 +540,17 @@ pub fn run(mode: Mode, shot: Option<PathBuf>) {
                         cancel.store(false, std::sync::atomic::Ordering::SeqCst);
                         let (p, c) = (proxy.clone(), cancel.clone());
                         std::thread::spawn(move || {
-                            let _ = p.send_event(SEv::Account(crate::account::google_sign_in(c)));
+                            let p2 = p.clone();
+                            let on_url = move |u: String| {
+                                let _ = p2.send_event(SEv::GoogleUrl(u));
+                            };
+                            let _ = p.send_event(SEv::Account(crate::account::google_sign_in(c, &on_url)));
                         });
+                    }
+                    "openUrl" => {
+                        if let Some(u) = v["url"].as_str().filter(|u| u.starts_with("https://accounts.google.com/")) {
+                            crate::account::open_in_browser(u);
+                        }
                     }
                     "googleCancel" => cancel.store(true, std::sync::atomic::Ordering::SeqCst),
                     "createAccount" => {

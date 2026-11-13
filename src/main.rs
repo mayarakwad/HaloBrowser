@@ -195,6 +195,7 @@ fn main() {
         account_cancel: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         account_wait: false,
         account_error: String::new(),
+        account_url: String::new(),
     };
     app.refresh_shared();
     if app.boot.extensions_enabled {

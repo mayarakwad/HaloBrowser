@@ -1,6 +1,6 @@
 [package]
 name = "halo-browser"
-version = "1.1.0"
+version = "1.1.1"
 edition = "2024"
 description = "Halo: a fast, light Windows web browser in Rust on the Blink/V8 engine (WebView2)"
 readme = "README.md"

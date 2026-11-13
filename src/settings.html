@@ -158,7 +158,8 @@ const PAGES = {
       return h;
     }
     if (D.account_wait) {
-      return h + '<div class="note" style="display:flex;align-items:center;gap:12px"><span class="spin"></span><div style="flex:1">Finish signing in in your web browser, then come back here.</div><button class="btn ghost" data-act="googleCancel">Cancel</button></div>';
+      return h + '<div class="note" style="display:flex;align-items:center;gap:12px"><span class="spin"></span><div style="flex:1">Finish signing in in your web browser, then come back here.</div><button class="btn ghost" data-act="googleAgain">Open sign-in page</button><button class="btn ghost" data-act="googleCancel">Cancel</button></div>' +
+        '<div class="lead" style="font-size:12.5px;margin-top:8px">If Google says <b>Access blocked</b>, add your Google account under <b>Test users</b> in Google Auth Platform \u2192 Audience, or press <b>Publish app</b> there.</div>';
     }
     const create = !D.has_local || acctTab === 'create';
     h += '<div class="card"><div class="add" style="flex-direction:column;align-items:stretch">' +

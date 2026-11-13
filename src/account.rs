@@ -84,7 +84,8 @@ fn dec(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-fn open_in_browser(url: &str) {
+/// Open an address in the person's default web browser.
+pub fn open_in_browser(url: &str) {
     #[cfg(windows)]
     {
         use windows::Win32::UI::Shell::ShellExecuteW;
@@ -130,7 +131,7 @@ fn agent() -> ureq::Agent {
 
 /// Sign in with Google in the person's web browser. Blocks until they finish,
 /// cancel (via `cancel`) or five minutes pass.
-pub fn google_sign_in(cancel: Arc<AtomicBool>) -> Result<Account, String> {
+pub fn google_sign_in(cancel: Arc<AtomicBool>, on_url: &dyn Fn(String)) -> Result<Account, String> {
     let (client_id, client_secret) = client().ok_or_else(|| {
         "Google sign-in isn't set up in this build yet. Add the Google sign-in file to the google folder and build Halo again."
             .to_string()
@@ -150,6 +151,8 @@ pub fn google_sign_in(cancel: Arc<AtomicBool>) -> Result<Account, String> {
         enc("openid email profile"),
     );
     open_in_browser(&url);
+    // Lets the window offer "open the sign-in page again" if the browser didn't come up.
+    on_url(url.clone());
 
     // Wait for Google to send the browser back with a code.
     let deadline = Instant::now() + SIGN_IN_WAIT;
@@ -158,7 +161,7 @@ pub fn google_sign_in(cancel: Arc<AtomicBool>) -> Result<Account, String> {
             return Err("Sign-in was cancelled.".into());
         }
         if Instant::now() > deadline {
-            return Err("Sign-in took too long. Try again.".into());
+            return Err("Sign-in took too long. If Google said \"Access blocked\", add your Google account as a test user (Google Auth Platform → Audience) or publish the app, then try again.".into());
         }
         let (mut stream, _) = match listener.accept() {
             Ok(s) => s,
