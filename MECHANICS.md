@@ -65,3 +65,9 @@ Sections in the style of privacy-first Chromium browsers such as Helium (the exa
 - The Google client comes from the first `google/*.json` file (a "Desktop app" OAuth client) or the `HALO_GOOGLE_CLIENT_JSON` setting at build time; without it the button is shown greyed out. The file is git-ignored; GitHub builds read it from the `GOOGLE_CLIENT_JSON` secret.
 - **Halo account** (on this computer): name, email, password of at least 8 characters, stored as a salted SHA-256 hash stretched 120,000 times; log in again after signing out; can be removed in Settings.
 - Signing in or out never deletes bookmarks, history or settings.
+
+## Files on this computer
+
+- The installer registers Halo for .htm, .html, .shtml, .xhtml, .svg, .webp and .pdf, so Windows lists it under *Open with* and Default apps.
+- A file path Windows passes (`C:\folder\file.pdf`, `\\server\share\page.htm`, with or without quotes) opens as a `file:///` page instead of being searched; typing such a path in the address bar does the same. PDFs open in the engine's PDF viewer (zoom, search, print, save).
+

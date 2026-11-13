@@ -197,11 +197,35 @@ fn encode_query(s: &str) -> String {
     out
 }
 
-/// Address bar rule: a web address opens, anything else is searched.
+/// A file on this computer (`C:\folder\page.pdf`, `\\server\share\a.htm`), as Windows
+/// passes it when you open a .pdf, .htm, .html, .xhtml… file with Halo.
+pub fn is_local_path(t: &str) -> bool {
+    let b = t.as_bytes();
+    (b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && (b[2] == b'\\' || b[2] == b'/'))
+        || t.starts_with(r"\\")
+}
+
+/// The file:/// address of a file on this computer.
+pub fn file_url(path: &str) -> String {
+    let p = path.replace('\\', "/");
+    let mut out = String::new();
+    for b in p.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' | b':' => out.push(b as char),
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    if out.starts_with("//") { format!("file:{out}") } else { format!("file:///{out}") }
+}
+
+/// Address bar rule: a web address opens, a file on this computer opens, anything else is searched.
 pub fn resolve(settings: &Settings, text: &str) -> String {
-    let t = text.trim();
+    let t = text.trim().trim_matches('"');
     if t.is_empty() {
         return NEWTAB.into();
+    }
+    if is_local_path(t) {
+        return file_url(t);
     }
     let lower = t.to_lowercase();
     if let Some(rest) = lower.strip_prefix("halo://") {
@@ -399,4 +423,19 @@ pub fn data_dir(shot: bool) -> PathBuf {
     let dir = base.join(if shot { "HaloBrowserShot" } else { "HaloBrowser" });
     let _ = std::fs::create_dir_all(&dir);
     dir
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn local_files_open_instead_of_searching() {
+        let s = Settings::default();
+        assert_eq!(resolve(&s, r"C:\Users\Sam\My Files\report.pdf"), "file:///C:/Users/Sam/My%20Files/report.pdf");
+        assert_eq!(resolve(&s, "\"D:\\web\\index.xhtml\""), "file:///D:/web/index.xhtml");
+        assert_eq!(resolve(&s, r"\\server\share\page.htm"), "file://server/share/page.htm");
+        assert!(resolve(&s, "example.com").starts_with("https://example.com"));
+        assert!(resolve(&s, "rust tutorial").starts_with("https://www.google.com/search?q=rust+tutorial"));
+    }
 }
