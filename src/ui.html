@@ -1,0 +1,800 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Halo</title>
+<script src="http://halo.localhost/themes.js"></script>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; font: 13px/1.3 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; color: var(--fg); user-select: none; }
+body { background: var(--bg); background-size: cover; }
+body.animated { background-size: 400% 400%; animation: drift 24s ease-in-out infinite; }
+@keyframes drift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+#dimmer { position: fixed; inset: 0; background: #000; opacity: var(--dim); pointer-events: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: default; }
+svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ib { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: var(--fg); flex: none; }
+.ib:hover { background: var(--hover); }
+.ib:active { transform: scale(.94); }
+.ib.on { color: var(--accent); }
+
+#app { position: fixed; inset: 0; display: grid; grid-template-columns: var(--sw, 248px) 1fr; transition: grid-template-columns .18s ease; }
+#app.horizontal { grid-template-columns: 1fr; }
+#app.collapsed { --sw: 64px; }
+
+/* Sidebar (vertical tabs) */
+#sidebar { display: flex; flex-direction: column; min-width: 0; padding: 8px 6px 8px 8px; gap: 6px; overflow: hidden; }
+#app.horizontal #sidebar { display: none; }
+.side-top { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 4px; }
+.mark { width: 22px; height: 22px; border-radius: 50%; flex: none; background: conic-gradient(from 200deg, var(--accent), #f472b6, #60a5fa, var(--accent)); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 60%, transparent); }
+.brand { font-weight: 650; letter-spacing: .3px; flex: 1; white-space: nowrap; }
+#app.collapsed .brand, #app.collapsed .side-search, #app.collapsed .tab .title, #app.collapsed .tab .x, #app.collapsed .newtab-btn span, #app.collapsed .side-bottom .lbl { display: none; }
+#app.collapsed .side-top { flex-direction: column; height: auto; gap: 6px; padding: 4px 0; }
+.side-search { display: flex; align-items: center; gap: 6px; background: var(--glass); border: 1px solid var(--border); border-radius: 10px; padding: 0 8px; height: 32px; backdrop-filter: blur(18px); }
+.side-search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--fg); font: inherit; }
+.side-search input::placeholder { color: var(--fg-dim); }
+#pinned { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+#pinned:empty { display: none; }
+#pinned .tab { height: 40px; justify-content: center; padding: 0; }
+#pinned .tab .title, #pinned .tab .x { display: none; }
+.tablist { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; overflow-x: hidden; flex: 1; min-height: 0; scrollbar-width: thin; }
+.tab { display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 6px 0 10px; border-radius: 10px; position: relative; flex: none; transition: background .12s; }
+.tab:hover { background: var(--hover); }
+.tab.active { background: var(--active); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.tab.asleep .fav, .tab.asleep .title { opacity: .5; }
+.tab .fav { width: 16px; height: 16px; border-radius: 4px; flex: none; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; background: var(--accent); overflow: hidden; }
+.tab .fav img { width: 16px; height: 16px; }
+.tab .fav.spin { background: none; border: 2px solid var(--fg-dim); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tab .title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab .media { color: var(--accent); display: grid; }
+.tab .media svg { width: 14px; height: 14px; }
+.tab .x { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; opacity: 0; }
+.tab:hover .x, .tab.active .x { opacity: .8; }
+.tab .x:hover { background: var(--hover); opacity: 1; }
+.tab .x svg { width: 12px; height: 12px; }
+.tab.dragover { outline: 2px solid var(--accent); outline-offset: -2px; }
+#app.collapsed .tab { justify-content: center; padding: 0; }
+.newtab-btn { display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 10px; border-radius: 10px; color: var(--fg-dim); flex: none; }
+.newtab-btn:hover { background: var(--hover); color: var(--fg); }
+#app.collapsed .newtab-btn { justify-content: center; padding: 0; }
+.side-bottom { display: flex; gap: 2px; padding-top: 4px; border-top: 1px solid var(--border); }
+#app.collapsed .side-bottom { flex-direction: column; align-items: center; }
+
+/* Main column */
+#main { display: flex; flex-direction: column; min-width: 0; padding: 0 8px 8px 2px; }
+#app.horizontal #main { padding-left: 8px; }
+#hstrip { display: none; height: 40px; align-items: flex-end; gap: 4px; padding-top: 4px; }
+#app.horizontal #hstrip { display: flex; }
+#tabs-h { display: flex; gap: 4px; min-width: 0; flex: 0 1 auto; overflow: hidden; }
+#tabs-h .tab { width: 210px; min-width: 44px; flex: 0 1 210px; height: 32px; border-radius: 10px; }
+#tabs-h .tab.pinned { flex: 0 0 44px; width: 44px; justify-content: center; padding: 0; }
+#tabs-h .tab.pinned .title, #tabs-h .tab.pinned .x { display: none; }
+#hstrip .plus { height: 32px; width: 32px; }
+.spacer { flex: 1; align-self: stretch; }
+#toolbar { display: flex; align-items: center; gap: 4px; height: 48px; }
+#omni { flex: 1; min-width: 120px; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; border-radius: 12px; background: var(--glass); border: 1px solid var(--border); backdrop-filter: blur(18px); position: relative; transition: background .15s, box-shadow .15s; }
+#omni:focus-within { background: var(--glass-strong); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent); }
+#omni .lock { color: var(--fg-dim); display: grid; }
+#addr { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: 0; color: var(--fg); font: 14px "Segoe UI Variable Text", "Segoe UI", sans-serif; user-select: text; }
+#addr::placeholder { color: var(--fg-dim); }
+#omni .ib { width: 28px; height: 28px; }
+.winctl { display: flex; align-items: center; margin-left: 6px; align-self: flex-start; height: 40px; }
+.winctl button { width: 42px; height: 32px; display: grid; place-items: center; border-radius: 8px; }
+.winctl button:hover { background: var(--hover); }
+.winctl button.close:hover { background: #e81123; color: #fff; }
+.winctl svg { width: 14px; height: 14px; stroke-width: 1.4; }
+#app.vertical .winctl { align-self: center; height: auto; }
+
+#b-home { display: none; }
+body.showhome #b-home { display: grid; }
+#b-dl { position: relative; }
+#b-dl .badge { position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--accent); color: #111; font-size: 10px; font-weight: 700; display: none; place-items: center; line-height: 1; }
+#b-dl.busy .badge { display: grid; }
+#b-dl.pulse { animation: dlPulse .9s ease 2; }
+@keyframes dlPulse { 50% { background: color-mix(in srgb, var(--accent) 40%, transparent); transform: translateY(3px); } }
+.addext { display: none; height: 26px; padding: 0 11px; border-radius: 8px; border: 0; background: var(--accent); color: #111; font: 600 12px "Segoe UI", sans-serif; white-space: nowrap; flex: none; }
+.addext.show { display: block; animation: addIn .25s ease both; }
+.addext:disabled { opacity: .7; }
+@keyframes addIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+#toast { position: absolute; inset: -1px; border-radius: inherit; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: var(--accent); color: #111; font-weight: 600; opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity .25s, transform .25s; z-index: 25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#toast.show { opacity: 1; transform: none; }
+#bmbar { display: none; gap: 2px; height: 30px; align-items: center; margin: -6px 0 6px; overflow: hidden; }
+body.showbm #bmbar { display: flex; }
+.bm { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 8px; max-width: 190px; color: var(--fg); font-size: 12.5px; flex: none; transition: background .12s; }
+.bm:hover { background: var(--hover); }
+.bm .bl { width: 14px; height: 14px; border-radius: 4px; background: var(--accent); color: #111; font-size: 9px; font-weight: 700; display: grid; place-items: center; flex: none; }
+.bm span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bm.hint { color: var(--fg-dim); }
+body.compact #toolbar { height: 40px; }
+body.compact #omni { height: 30px; }
+body.compact .ib { width: 28px; height: 28px; }
+body.compact .tab, body.compact .newtab-btn { height: 30px; }
+body.compact #tabs-h .tab { height: 28px; }
+body.compact #hstrip { height: 34px; }
+body.compact .side-top { height: 30px; }
+body.compact #pinned .tab { height: 34px; }
+body.square .tab, body.square #omni, body.square #content, body.square .ib, body.square .side-search, body.square .newtab-btn, body.square .bm, body.square #sugg, body.square .addext { border-radius: 3px; }
+.extrow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--hover); margin-bottom: 8px; max-width: 640px; }
+.extrow .eic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--glass); font-weight: 700; overflow: hidden; flex: none; }
+.extrow .eic img { width: 24px; height: 24px; }
+.extrow .t { flex: 1; min-width: 0; }
+.extrow .t div:last-child { color: var(--fg-dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#content { flex: 1; position: relative; border-radius: 12px; overflow: hidden; background: var(--glass); border: 1px solid var(--border); min-height: 0; }
+#progress { position: absolute; left: 0; top: 0; height: 2px; width: 0; background: var(--accent); z-index: 3; transition: width .4s ease, opacity .3s; }
+
+/* Suggestions + panels (shown while the page is tucked away) */
+#sugg { display: none; position: absolute; left: -1px; right: -1px; top: 40px; z-index: 20; background: var(--glass-strong); border: 1px solid var(--border); border-radius: 12px; padding: 6px; backdrop-filter: blur(24px); box-shadow: 0 18px 40px rgba(0,0,0,.35); }
+#sugg.show { display: block; }
+.srow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; }
+.srow.sel, .srow:hover { background: var(--hover); }
+.srow .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.srow .u { color: var(--fg-dim); font-size: 12px; max-width: 45%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.srow .k { color: var(--fg-dim); font-size: 11px; border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+
+.panel { display: none; position: absolute; inset: 0; z-index: 10; overflow: auto; padding: 28px 36px; background: var(--glass-strong); backdrop-filter: blur(30px); }
+.panel.show { display: block; }
+.panel h2 { margin: 0 0 4px; font-size: 22px; font-weight: 650; }
+.panel h3 { margin: 26px 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--fg-dim); font-weight: 600; }
+.panel .sub { color: var(--fg-dim); margin-bottom: 8px; }
+.panel .closep { position: absolute; right: 20px; top: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.sw { height: 92px; border-radius: 14px; border: 2px solid transparent; position: relative; overflow: hidden; background-size: cover; box-shadow: inset 0 0 0 1px var(--border); }
+.sw.sel { border-color: var(--accent); }
+.sw span { position: absolute; left: 8px; bottom: 7px; font-weight: 600; font-size: 12px; padding: 2px 8px; border-radius: 6px; background: rgba(0,0,0,.35); color: #fff; }
+.sw.custom { display: grid; place-items: center; background: var(--hover); color: var(--fg-dim); font-weight: 600; }
+.sw.anim { background-size: 400% 400%; animation: drift 10s ease-in-out infinite; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+.dot.sel { border-color: var(--fg); }
+.chip { padding: 8px 14px; border-radius: 10px; background: var(--hover); border: 1px solid var(--border); }
+.chip.sel { background: var(--accent); color: #111; border-color: transparent; font-weight: 600; }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-radius: 12px; background: var(--hover); margin-bottom: 8px; max-width: 640px; }
+.opt .d { color: var(--fg-dim); font-size: 12px; margin-top: 2px; }
+.tog { width: 40px; height: 22px; border-radius: 11px; background: var(--border); position: relative; flex: none; }
+.tog::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
+.tog.on { background: var(--accent); }
+.tog.on::after { left: 21px; }
+select, input[type=range] { accent-color: var(--accent); }
+select { background: var(--glass-strong); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font: inherit; }
+.btn { padding: 8px 14px; border-radius: 10px; background: var(--accent); color: #111; font-weight: 600; }
+.btn.ghost { background: var(--hover); color: var(--fg); border: 1px solid var(--border); font-weight: 500; }
+#palette { padding: 0; display: none; position: absolute; left: 50%; top: 40px; width: min(620px, 92%); transform: translateX(-50%); bottom: auto; inset-inline: auto; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 24px 60px rgba(0,0,0,.45); z-index: 30; }
+#palette.show { display: block; }
+
+/* ---------- motion ---------- */
+:root { --ease: cubic-bezier(.2,.8,.2,1); --spring: cubic-bezier(.34,1.56,.64,1); }
+#bgfade { position: fixed; inset: 0; pointer-events: none; opacity: 0; background-size: cover; }
+.ib, .winctl button, .chip, .dot, .newtab-btn, .btn { transition: background .15s, color .2s, transform .18s var(--spring), box-shadow .2s; }
+.ib svg { transition: transform .35s var(--spring); }
+.ib:hover svg { transform: scale(1.12); }
+#b-settings:hover svg, #btn-settings-v:hover svg { transform: rotate(75deg); }
+#b-reload:hover svg { transform: rotate(-120deg); }
+#b-back:hover svg { transform: translateX(-2px); }
+#b-fwd:hover svg { transform: translateX(2px); }
+#collapse svg { transition: transform .3s var(--spring); }
+#app.collapsed #collapse svg { transform: scaleX(-1); }
+.chip:hover, .dot:hover { transform: translateY(-1px) scale(1.06); }
+.chip:active, .dot:active, .btn:active { transform: scale(.95); }
+.mark { animation: spinSlow 14s linear infinite; }
+body.busy .mark { animation-duration: 1.4s; }
+@keyframes spinSlow { to { transform: rotate(360deg); } }
+/* a new tab opens a gap smoothly, then its content glides in (no bounce) */
+.tab.enter { animation: tabGrow .3s cubic-bezier(.25,.8,.25,1) both; overflow: hidden; }
+.tab.enter > * { animation: tabContent .22s .06s cubic-bezier(.25,.8,.25,1) both; }
+#tabs-h .tab.enter { animation-name: tabGrowH; }
+#pinned .tab.enter { animation-name: tabFade; }
+@keyframes tabGrow { from { height: 0; opacity: 0; } to { height: 36px; opacity: 1; } }
+@keyframes tabGrowH { from { flex-basis: 0; width: 0; min-width: 0; opacity: 0; } to { flex-basis: 210px; width: 210px; min-width: 44px; opacity: 1; } }
+@keyframes tabFade { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes tabContent { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.tab.leaving { animation: tabOut .18s ease-in forwards; pointer-events: none; overflow: hidden; }
+#tabs-h .tab.leaving { animation-name: tabOutH; }
+@keyframes tabOut { to { opacity: 0; transform: translateX(-20px); height: 0; } }
+@keyframes tabOutH { to { opacity: 0; transform: scale(.85); flex-basis: 0; width: 0; min-width: 0; padding: 0; } }
+.tab.active::before { content: ''; position: absolute; left: 3px; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--accent); }
+#tabs-h .tab.active::before { left: 16px; right: 16px; top: auto; bottom: -3px; width: auto; height: 3px; }
+#pinned .tab.active::before { left: 12px; right: 12px; top: auto; bottom: 2px; width: auto; height: 3px; }
+.tab.activated::before { animation: barIn .3s cubic-bezier(.25,.8,.25,1) both; }
+@keyframes barIn { from { transform: scaleY(0); opacity: 0; } to { transform: none; opacity: 1; } }
+.tab .media svg { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; transform: scale(.9); } }
+#progress::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); animation: shimmer 1s linear infinite; }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+#b-star.pop svg { animation: starPop .5s var(--spring); }
+@keyframes starPop { 0% { transform: scale(.4) rotate(-40deg); } 60% { transform: scale(1.35) rotate(10deg); } 100% { transform: none; } }
+.panel.show { animation: panelIn .3s var(--ease) both; }
+@keyframes panelIn { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: none; } }
+.panel.fresh .sw, .panel.fresh .opt, .panel.fresh .bmk, .panel.fresh h3, .panel.fresh .row { animation: rise .42s var(--ease) both; animation-delay: calc(var(--i, 0) * 28ms + 60ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.sw { transition: transform .25s var(--spring), box-shadow .25s, border-color .2s; }
+.sw:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 10px 26px rgba(0,0,0,.3), inset 0 0 0 1px var(--border); }
+.sw.sel { animation: selPulse .5s var(--spring); }
+@keyframes selPulse { 0% { transform: scale(.94); } 100% { transform: none; } }
+.tog, .tog::after { transition: background .2s, left .25s var(--spring); }
+#palette.show { animation: popIn .26s var(--spring) both; }
+@keyframes popIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(.96); } to { opacity: 1; transform: translateX(-50%); } }
+#sugg.show { animation: dropIn .2s var(--ease) both; transform-origin: top center; }
+@keyframes dropIn { from { opacity: 0; transform: translateY(-6px) scaleY(.96); } to { opacity: 1; transform: none; } }
+.srow { transition: background .12s, padding-left .15s var(--ease); }
+.srow.sel { padding-left: 14px; }
+#app { animation: appIn .5s var(--ease) both; }
+@keyframes appIn { from { opacity: 0; } to { opacity: 1; } }
+body.nomotion *, body.nomotion *::before, body.nomotion *::after { animation: none !important; transition: none !important; }
+#palette input { width: 100%; padding: 16px 18px; font-size: 16px; background: none; border: 0; border-bottom: 1px solid var(--border); outline: 0; color: var(--fg); user-select: text; }
+#plist { max-height: 380px; overflow: auto; padding: 6px; }
+.bmk { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--hover); margin-bottom: 6px; max-width: 640px; }
+.bmk .t { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bmk .u { color: var(--fg-dim); font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="bgfade"></div><div id="dimmer"></div>
+<div id="app" class="vertical">
+  <aside id="sidebar">
+    <div class="side-top drag">
+      <div class="mark"></div>
+      <span class="brand">Halo</span>
+      <button class="ib" id="collapse" title="Collapse sidebar (Ctrl+Shift+B)"></button>
+    </div>
+    <div class="side-search"><span class="ico-search"></span><input id="tabfilter" placeholder="Search tabs" spellcheck="false"></div>
+    <div id="pinned"></div>
+    <div id="tabs-v" class="tablist"></div>
+    <button class="newtab-btn" id="newtab-v" title="New tab (Ctrl+T)"><span class="ico-plus"></span><span>New tab</span></button>
+    <div class="side-bottom">
+      <button class="ib" id="btn-themes-v" title="Themes and backgrounds"></button>
+      <button class="ib" id="btn-bookmarks-v" title="Bookmarks"></button>
+      <button class="ib" id="btn-settings-v" title="Settings"></button>
+    </div>
+  </aside>
+  <main id="main">
+    <div id="hstrip" class="drag">
+      <div id="tabs-h"></div>
+      <button class="ib plus" id="newtab-h" title="New tab (Ctrl+T)"></button>
+      <div class="spacer drag"></div>
+    </div>
+    <div id="toolbar" class="drag">
+      <button class="ib" id="b-back" title="Back (Alt+Left)"></button>
+      <button class="ib" id="b-fwd" title="Forward (Alt+Right)"></button>
+      <button class="ib" id="b-reload" title="Reload (F5)"></button>
+      <button class="ib" id="b-home" title="Home"></button>
+      <div id="omni">
+        <span class="lock" id="lock"></span>
+        <input id="addr" spellcheck="false" autocomplete="off" placeholder="Search Google or type a URL">
+        <button class="addext" id="b-addext" title="Add this extension to Halo"></button>
+        <button class="ib" id="b-star" title="Bookmark this page (Ctrl+D)"></button>
+        <div id="sugg"></div>
+        <div id="toast"></div>
+      </div>
+      <button class="ib" id="b-ext" title="Extensions"></button>
+      <button class="ib" id="b-dl" title="Downloads (Ctrl+J)"><span class="badge" id="dlbadge"></span></button>
+      <button class="ib" id="b-palette" title="Command bar (Ctrl+K)"></button>
+      <button class="ib" id="b-themes" title="Themes and backgrounds"></button>
+      <button class="ib" id="b-settings" title="Settings (Ctrl+,)"></button>
+    </div>
+    <div id="bmbar"></div>
+    <div id="content">
+      <div id="progress"></div>
+      <section class="panel" id="p-themes"></section>
+     <section class="panel" id="p-bookmarks"></section>
+      <section class="panel" id="p-ext"></section>
+      <section class="panel" id="palette"><input id="pin" placeholder="Type a command, a tab name or a search" spellcheck="false"><div id="plist"></div></section>
+    </div>
+  </main>
+  <div class="winctl" id="winctl">
+    <button id="w-min" title="Minimize"></button>
+    <button id="w-max" title="Maximize"></button>
+    <button id="w-close" class="close" title="Close"></button>
+  </div>
+</div>
+<script>
+const I = {
+  back: '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>',
+  fwd: '<svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>',
+  reload: '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
+  stop: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  star: '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+  starOn: '<svg viewBox="0 0 24 24" style="fill:currentColor"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+  palette: '<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><circle cx="18" cy="16" r="3"/></svg>',
+  brush: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="11" cy="7.5" r="1.2"/><circle cx="15.5" cy="8.5" r="1.2"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  book: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
+  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  side: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>',
+  search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  tab: '<svg viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></svg>',
+  sound: '<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>',
+  min: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
+  max: '<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg>',
+  close: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  home: '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>',
+  dl: '<svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+  puzzle: '<svg viewBox="0 0 24 24"><path d="M9 4h4v3a2 2 0 1 0 4 0V4h3v6h-3a2 2 0 1 0 0 4h3v6h-6v-3a2 2 0 1 0-4 0v3H4v-6h3a2 2 0 1 0 0-4H4V4z"/></svg>'
+};
+const $ = s => document.querySelector(s);
+const post = m => window.ipc.postMessage(JSON.stringify(m));
+let S = { tabs: [], active: 0, settings: { theme: 'aurora', layout: 'vertical' }, bookmarks: [], extensions: [], installing: [] };
+const engineName = () => S.engine_name || 'Google';
+const openSettings = section => { closePanels(); post({ cmd: 'openSettings', section: section || '' }); };
+// A Chrome Web Store extension page: its 32-letter id.
+function storeId(u) {
+  const m = /^https:\/\/(chromewebstore\.google\.com\/detail|chrome\.google\.com\/webstore\/detail)\/(?:[^/?#]+\/)?([a-p]{32})/.exec(u || '');
+  return m ? m[2] : '';
+}
+// What the address bar shows when you are not typing in it.
+function displayUrl(u) {
+  if (!u || u.startsWith('http://halo.localhost/newtab')) return '';
+  if (u.startsWith('http://halo.localhost/settings')) { const h = u.split('#')[1]; return 'halo://settings' + (h ? '/' + h : ''); }
+  if (S.settings.full_urls) return u;
+  let s = u.replace(/^https:\/\//, '').replace(/^www\./, '');
+  if (/^[^/]+\/$/.test(s)) s = s.slice(0, -1);
+  return s;
+}
+const ACCENTS = ['', '#5eead4', '#60a5fa', '#a78bfa', '#f472b6', '#fb7185', '#fdba74', '#facc15', '#86efac'];
+
+// icons into static buttons
+$('#b-back').innerHTML = I.back; $('#b-fwd').innerHTML = I.fwd; $('#b-reload').innerHTML = I.reload;
+$('#b-star').innerHTML = I.star; $('#b-palette').innerHTML = I.palette; $('#b-themes').innerHTML = I.brush;
+$('#b-settings').innerHTML = I.gear; $('#btn-themes-v').innerHTML = I.brush; $('#btn-settings-v').innerHTML = I.gear;
+$('#btn-bookmarks-v').innerHTML = I.book; $('#collapse').innerHTML = I.side; $('#newtab-h').innerHTML = I.plus;
+document.querySelector('.ico-plus').outerHTML = I.plus; document.querySelector('.ico-search').outerHTML = I.search;
+$('#w-min').innerHTML = I.min; $('#w-max').innerHTML = I.max; $('#w-close').innerHTML = I.close;
+$('#b-home').innerHTML = I.home; $('#b-ext').innerHTML = I.puzzle; $('#b-dl').insertAdjacentHTML('afterbegin', I.dl);
+
+// ---------- rendering ----------
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function host(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+function isNewtab(u) { return !u || u.startsWith('http://halo.localhost/'); }
+function favHtml(t) {
+  if (t.loading && !t.asleep) return '<span class="fav spin"></span>';
+  if (t.icon) return '<span class="fav" style="background:none"><img src="' + esc(t.icon) + '" onerror="this.parentNode.style.background=\'\';this.parentNode.textContent=\'' + esc((t.title || '?')[0].toUpperCase()) + '\'"></span>';
+  if (isNewtab(t.url)) return '<span class="fav" style="background:conic-gradient(from 200deg,var(--accent),#f472b6,#60a5fa,var(--accent))"></span>';
+  return '<span class="fav">' + esc((host(t.url) || t.title || '?')[0].toUpperCase()) + '</span>';
+}
+// motion bookkeeping: only new tabs slide in, only a newly chosen tab "pops"
+let seenTabs = new Set(), firstRender = true, lastActive = -1, justActivated = false, lastBgKey = '', lastMarked = null;
+function tabTitle(t) { return t.title || (isNewtab(t.url) ? 'New tab' : host(t.url) || t.url); }
+function tabInner(t) {
+  return favHtml(t) + '<span class="title">' + esc(tabTitle(t)) + '</span>' + (t.media ? '<span class="media">' + I.sound + '</span>' : '') +
+    '<span class="x" data-x="' + t.id + '">' + I.x + '</span>';
+}
+// Run a one-off animation class and take it off when that animation ends.
+function playOnce(el, cls) {
+  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  const done = e => { if (e.target === el) { el.classList.remove(cls); el.removeEventListener('animationend', done); } };
+  el.addEventListener('animationend', done);
+}
+// Keep each tab's element alive between updates (only what changed is redrawn),
+// so a tab's opening animation is never cut short by the next update.
+function renderList(box, list) {
+  const ids = new Set(list.map(t => t.id));
+  for (const el of Array.from(box.children)) if (!ids.has(+el.dataset.id) && !el.classList.contains('leaving')) el.remove();
+  let prev = null;
+  for (const t of list) {
+    let el = box.querySelector(':scope > .tab[data-id="' + t.id + '"]');
+    const created = !el;
+    if (created) { el = document.createElement('div'); el.dataset.id = t.id; el.draggable = true; }
+    const inner = tabInner(t);
+    if (el._inner !== inner) { el.innerHTML = inner; el._inner = inner; }
+    el.classList.add('tab');
+    el.classList.toggle('active', t.id === S.active);
+    el.classList.toggle('asleep', !!t.asleep);
+    el.classList.toggle('pinned', !!t.pinned);
+    el.title = tabTitle(t) + (t.asleep ? ' (sleeping)' : '');
+    const spot = prev ? prev.nextSibling : box.firstChild;
+    if (spot !== el) box.insertBefore(el, spot);
+    if (created && !firstRender && !seenTabs.has(t.id) && motionOn()) playOnce(el, 'enter');
+    if (justActivated && t.id === S.active && motionOn()) playOnce(el, 'activated');
+    prev = el;
+  }
+}
+function renderTabs() {
+  const vertical = S.settings.layout !== 'horizontal';
+  const f = $('#tabfilter').value.trim().toLowerCase();
+  const match = t => !f || (t.title || '').toLowerCase().includes(f) || (t.url || '').toLowerCase().includes(f);
+  if (vertical) {
+    renderList($('#pinned'), S.tabs.filter(t => t.pinned && match(t)));
+    renderList($('#tabs-v'), S.tabs.filter(t => !t.pinned && match(t)));
+    renderList($('#tabs-h'), []);
+  } else {
+    renderList($('#tabs-h'), S.tabs);
+    renderList($('#pinned'), []); renderList($('#tabs-v'), []);
+  }
+  for (const t of S.tabs) seenTabs.add(t.id);
+}
+function motionOn() { return S.settings.animations !== false; }
+// cross-fade from the old background to the new one when the theme changes
+function fadeBackground(st) {
+  const key = st.theme + '|' + st.custom_bg + '|' + st.bg_version;
+  if (key === lastBgKey) { haloApplyTheme(document.body, st); return; }
+  const old = getComputedStyle(document.body).getPropertyValue('--bg');
+  const hadKey = lastBgKey;
+  lastBgKey = key;
+  haloApplyTheme(document.body, st);
+  if (!hadKey || !motionOn() || !old) return;
+  const f = $('#bgfade');
+  f.style.transition = 'none'; f.style.background = old; f.style.backgroundSize = 'cover'; f.style.opacity = '1';
+  void f.offsetWidth;
+  f.style.transition = 'opacity .7s ease'; f.style.opacity = '0';
+}
+// let a tab shrink away before it is closed
+function closeTab(id) {
+  const el = document.querySelector('.tab[data-id="' + id + '"]');
+  if (!el || !motionOn()) { post({ cmd: 'close', id }); return; }
+  el.classList.add('leaving');
+  setTimeout(() => { post({ cmd: 'close', id }); el.remove(); }, 180);
+}
+function activeTab() { return S.tabs.find(t => t.id === S.active) || {}; }
+function render() {
+  const st = S.settings;
+  fadeBackground(st);
+  document.body.classList.toggle('nomotion', st.animations === false);
+  document.body.classList.toggle('busy', S.tabs.some(t => t.loading));
+  justActivated = !firstRender && S.active !== lastActive;
+  lastActive = S.active;
+  const app = $('#app');
+  app.className = (st.layout === 'horizontal' ? 'horizontal' : 'vertical') + (st.collapsed && st.layout !== 'horizontal' ? ' collapsed' : '');
+  // window controls live in the tab strip (horizontal) or the toolbar (vertical)
+  const wc = $('#winctl');
+  const home = st.layout === 'horizontal' ? $('#hstrip') : $('#toolbar');
+  if (wc.parentNode !== home) home.appendChild(wc);
+  renderTabs();
+  const t = activeTab();
+  if (document.activeElement !== $('#addr')) $('#addr').value = displayUrl(t.url);
+  $('#addr').placeholder = 'Search ' + engineName() + ' or type a URL';
+  const body = document.body;
+  body.classList.toggle('showhome', !!st.show_home);
+  body.classList.toggle('showbm', !!st.show_bookmarks_bar);
+  body.classList.toggle('compact', st.density === 'compact');
+  body.classList.toggle('square', st.corners === 'square');
+  renderBookmarkBar();
+  // downloads button: count of files still coming in
+  const busy = S.downloads_active || 0;
+  $('#b-dl').classList.toggle('busy', busy > 0);
+  $('#dlbadge').textContent = busy || '';
+  // "Add to Halo" on a Chrome Web Store extension page
+  const sid = storeId(t.url), ae = $('#b-addext');
+  const have = sid && (S.extensions || []).some(e => e.store_id === sid);
+  const adding = sid && (S.installing || []).includes(sid);
+  ae.classList.toggle('show', !!sid);
+  ae.disabled = !!(have || adding);
+  ae.textContent = have ? 'Added to Halo' : adding ? 'Adding…' : 'Add to Halo';
+  ae.dataset.id = sid;
+  if ($('#p-ext').classList.contains('show')) renderExt();
+  $('#lock').innerHTML = (t.url || '').startsWith('https://') ? I.lock : I.globe;
+  const rl = $('#b-reload'), wantStop = !!t.loading;
+  if (rl.dataset.stop !== String(wantStop)) { rl.dataset.stop = String(wantStop); rl.innerHTML = wantStop ? I.stop : I.reload; }
+  rl.title = t.loading ? 'Stop' : 'Reload (F5)';
+  const marked = S.bookmarks.some(b => b.url === t.url);
+  const star = $('#b-star');
+  if (star.dataset.on !== String(marked)) { star.dataset.on = String(marked); star.innerHTML = marked ? I.starOn : I.star; }
+  star.classList.toggle('on', marked);
+  if (lastMarked === false && marked && !justActivated) { star.classList.remove('pop'); void star.offsetWidth; star.classList.add('pop'); }
+  lastMarked = marked;
+  $('#b-star').style.visibility = isNewtab(t.url) ? 'hidden' : 'visible';
+  const p = $('#progress');
+  if (t.loading) { p.style.opacity = 1; p.style.width = '70%'; } else { p.style.width = '100%'; p.style.opacity = 0; setTimeout(() => { if (!activeTab().loading) p.style.width = '0'; }, 350); }
+  if ($('#p-themes').classList.contains('show')) renderThemes();
+  if ($('#p-bookmarks').classList.contains('show')) renderBookmarks();
+  reportRect();
+  firstRender = false;
+}
+function renderBookmarkBar() {
+  const bar = $('#bmbar');
+  if (!S.settings.show_bookmarks_bar) { if (bar.innerHTML) bar.innerHTML = ''; return; }
+  const html = S.bookmarks.length
+    ? S.bookmarks.map((b, i) => '<a class="bm" data-bm="' + i + '" title="' + esc(b.title || b.url) + '"><span class="bl">' + esc((host(b.url) || '?')[0].toUpperCase()) + '</span><span>' + esc(b.title || host(b.url)) + '</span></a>').join('')
+    : '<span class="bm hint">Press the star in the address bar to add pages here.</span>';
+  if (bar._html !== html) { bar.innerHTML = html; bar._html = html; }
+}
+$('#bmbar').addEventListener('click', e => { const b = e.target.closest('[data-bm]'); if (b) post({ cmd: 'open', url: S.bookmarks[+b.dataset.bm].url }); });
+$('#bmbar').addEventListener('auxclick', e => { const b = e.target.closest('[data-bm]'); if (b && e.button === 1) post({ cmd: 'open', url: S.bookmarks[+b.dataset.bm].url, newTab: true }); });
+function renderExt() {
+  const ex = S.extensions || [];
+  let h = '<button class="ib closep" data-close>' + I.x + '</button><h2>Extensions</h2><div class="sub">Pick one to open it. Add more from the Chrome Web Store.</div><h3>Installed</h3>';
+  if (!ex.length) h += '<div class="sub">No extensions yet. Open the Chrome Web Store, choose one and press “Add to Halo” in the address bar.</div>';
+  for (const e of ex) h += '<div class="extrow"><span class="eic">' + (e.icon ? '<img src="http://halo.localhost/exticon?id=' + encodeURIComponent(e.id) + '">' : esc((e.name || '?')[0])) + '</span><div class="t"><div>' + esc(e.name) + (e.enabled ? '' : ' (off)') + '</div><div>' + esc(e.description || '') + '</div></div>' +
+    (e.popup ? '<button class="btn ghost" data-extopen="' + esc(e.id) + '" data-kind="popup">Open</button>' : '') + (e.options ? '<button class="btn ghost" data-extopen="' + esc(e.id) + '" data-kind="options">Options</button>' : '') + '</div>';
+  h += '<div class="row" style="margin-top:14px"><button class="btn" data-store>Open Chrome Web Store</button><button class="btn ghost" data-manage>Manage extensions</button></div>';
+  $('#p-ext').innerHTML = h;
+}
+$('#p-ext').addEventListener('click', e => {
+  const o = e.target.closest('[data-extopen]');
+  if (o) { closePanels(); post({ cmd: 'openExt', ext: o.dataset.extopen, kind: o.dataset.kind }); return; }
+  if (e.target.closest('[data-store]')) { closePanels(); post({ cmd: 'open', url: 'https://chromewebstore.google.com/category/extensions', newTab: true }); return; }
+  if (e.target.closest('[data-manage]')) openSettings('extensions');
+});
+let toastTimer = 0;
+window.halo = {
+  update(state) { S = state; render(); },
+  suggestions(list) { showSugg(list); },
+  toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+  },
+  cmd(c) {
+    if (c === 'focus') { closePanels(); const a = $('#addr'); a.focus(); a.select(); }
+    else if (c === 'palette') openPalette();
+    else if (c === 'themes') openPanel('p-themes');
+    else if (c === 'settings') openSettings();
+    else if (c === 'bookmarks') openPanel('p-bookmarks');
+    else if (c === 'extensions') openPanel('p-ext');
+    else if (c === 'dlpulse') { const b = $('#b-dl'); b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); }
+    else if (c === 'escape') closePanels();
+  }
+};
+
+// ---------- content area bounds ----------
+let lastRect = '';
+function reportRect() {
+  const r = $('#content').getBoundingClientRect();
+  const m = { cmd: 'rect', x: Math.round(r.left + 1), y: Math.round(r.top + 1), w: Math.round(r.width - 2), h: Math.round(r.height - 2) };
+  const k = JSON.stringify(m);
+  if (k !== lastRect) { lastRect = k; post(m); }
+}
+new ResizeObserver(reportRect).observe($('#content'));
+window.addEventListener('resize', reportRect);
+$('#app').addEventListener('transitionend', reportRect);
+
+// ---------- overlay bookkeeping: the page hides while a panel is open ----------
+let overlayOn = false;
+function syncOverlay() {
+  const on = !!document.querySelector('.panel.show') || $('#sugg').classList.contains('show');
+  if (on !== overlayOn) { overlayOn = on; post({ cmd: 'overlay', on }); }
+}
+function closePanels() { document.querySelectorAll('.panel.show').forEach(p => p.classList.remove('show')); hideSugg(); syncOverlay(); }
+function openPanel(id) {
+  const el = $('#' + id); const was = el.classList.contains('show');
+  closePanels();
+  if (was) return;
+  el.classList.add('show');
+  el.classList.add('fresh'); setTimeout(() => el.classList.remove('fresh'), 900);
+  if (id === 'p-themes') renderThemes();
+  if (id === 'p-ext') renderExt();
+  if (id === 'p-bookmarks') renderBookmarks();
+  syncOverlay();
+}
+const setS = (key, value) => post({ cmd: 'setting', key, value });
+
+function renderThemes() {
+  const st = S.settings;
+  let h = '<button class="ib closep" data-close>' + I.x + '</button><h2>Themes &amp; backgrounds</h2><div class="sub">Pick a look for the browser frame and the new tab page.</div><h3>Themes</h3><div class="grid">';
+  HALO_THEMES.forEach((t, n) => { h += '<div class="sw' + (t.animated ? ' anim' : '') + (!st.custom_bg && st.theme === t.id ? ' sel' : '') + '" data-theme="' + t.id + '" style="--i:' + n + ';background:' + t.bg + ';background-size:' + (t.animated ? '400% 400%' : 'cover') + '"><span>' + t.name + '</span></div>'; });
+  h += '<label class="sw custom' + (st.custom_bg ? ' sel' : '') + '" ' + (st.custom_bg ? 'style="background:url(http://halo.localhost/bg?v=' + st.bg_version + ') center/cover"' : '') + '><input type="file" accept="image/*" id="bgfile" hidden><span style="position:static;background:none;color:inherit">' + (st.custom_bg ? 'Your picture' : '+ Your own picture') + '</span></label></div>';
+  if (st.custom_bg) h += '<div class="row" style="margin-top:12px"><span>Text on your picture:</span><button class="chip' + (st.custom_dark ? ' sel' : '') + '" data-cdark="1">Light text</button><button class="chip' + (!st.custom_dark ? ' sel' : '') + '" data-cdark="0">Dark text</button><button class="chip" data-nobg>Remove picture</button></div>';
+  h += '<h3>Accent colour</h3><div class="row">';
+  for (const a of ACCENTS) h += '<button class="dot' + ((st.accent || '') === a ? ' sel' : '') + '" data-accent="' + a + '" title="' + (a || 'Theme default') + '" style="background:' + (a || 'conic-gradient(' + haloTheme(st.theme).accent + ' 0 50%, transparent 0)') + '"></button>';
+  h += '<input type="color" id="accentpick" value="' + (st.accent || haloTheme(st.theme).accent) + '" title="Any colour" style="width:34px;height:30px;border:0;background:none"></div>';
+  h += '<h3>Background dimming</h3><div class="row"><input type="range" min="0" max="0.7" step="0.05" value="' + (st.bg_dim || 0) + '" id="dimr" style="width:260px"><span>' + Math.round((st.bg_dim || 0) * 100) + '%</span></div>';
+  h += '<h3>Layout</h3><div class="row"><button class="chip' + (st.layout !== 'horizontal' ? ' sel' : '') + '" data-layout="vertical">Side tabs</button><button class="chip' + (st.layout === 'horizontal' ? ' sel' : '') + '" data-layout="horizontal">Top tabs</button>';
+  if (st.layout !== 'horizontal') h += '<button class="chip' + (st.collapsed ? ' sel' : '') + '" data-collapse>Compact sidebar</button>';
+  h += '</div>';
+  $('#p-themes').innerHTML = h;
+  const f = $('#bgfile');
+  f.onchange = () => {
+    const file = f.files[0]; if (!file) return;
+    if (file.size > 25 * 1024 * 1024) { alert('That picture is too large (over 25 MB).'); return; }
+    const rd = new FileReader();
+    rd.onload = () => post({ cmd: 'bgimage', data: rd.result });
+    rd.readAsDataURL(file);
+  };
+  $('#dimr').oninput = e => setS('bg_dim', parseFloat(e.target.value));
+  $('#accentpick').onchange = e => setS('accent', e.target.value);
+}
+function renderBookmarks() {
+  let h = '<button class="ib closep" data-close>' + I.x + '</button><h2>Bookmarks</h2><div class="sub">Press the star in the address bar (or Ctrl+D) to keep a page here.</div><h3>Saved pages</h3>';
+  if (!S.bookmarks.length) h += '<div class="sub">Nothing saved yet.</div>';
+  for (const [n, b] of S.bookmarks.entries()) h += '<div class="bmk" style="--i:' + n + '"><span class="fav" style="width:16px;height:16px;border-radius:4px;background:var(--accent);display:grid;place-items:center;font-size:10px;color:#fff;font-weight:700">' + esc((host(b.url) || '?')[0].toUpperCase()) + '</span><span class="t" data-open="' + esc(b.url) + '">' + esc(b.title || b.url) + '</span><span class="u">' + esc(host(b.url)) + '</span><button class="ib" data-unmark="' + esc(b.url) + '" title="Remove">' + I.x + '</button></div>';
+  $('#p-bookmarks').innerHTML = h;
+}
+document.addEventListener('click', e => {
+  const d = e.target.closest('[data-theme],[data-accent],[data-layout],[data-collapse],[data-engine],[data-tog],[data-close],[data-cdark],[data-nobg],[data-clearhist],[data-clearsite],[data-open],[data-unmark]');
+  if (!d) return;
+  if (d.dataset.theme) { setS('theme', d.dataset.theme); setS('custom_bg', false); }
+  else if (d.dataset.accent !== undefined) setS('accent', d.dataset.accent);
+  else if (d.dataset.layout) setS('layout', d.dataset.layout);
+  else if (d.dataset.collapse !== undefined) setS('collapsed', !S.settings.collapsed);
+  else if (d.dataset.engine) setS('engine', d.dataset.engine);
+  else if (d.dataset.tog) setS(d.dataset.tog, !S.settings[d.dataset.tog]);
+  else if (d.dataset.cdark) setS('custom_dark', d.dataset.cdark === '1');
+  else if (d.dataset.nobg !== undefined) setS('custom_bg', false);
+  else if (d.dataset.clearhist !== undefined) { post({ cmd: 'clearHistory' }); d.textContent = 'History cleared'; }
+  else if (d.dataset.clearsite !== undefined) { post({ cmd: 'clearSiteData' }); d.textContent = 'Site data cleared'; }
+  else if (d.dataset.open) { closePanels(); post({ cmd: 'newtab', url: d.dataset.open }); }
+  else if (d.dataset.unmark) post({ cmd: 'unbookmark', url: d.dataset.unmark });
+  else if (d.dataset.close !== undefined) closePanels();
+});
+
+// ---------- tabs ----------
+function tabClick(e) {
+  const x = e.target.closest('[data-x]');
+  const t = e.target.closest('.tab');
+  if (!t) return;
+  if (x) { closeTab(+x.dataset.x); return; }
+  closePanels();
+  post({ cmd: 'activate', id: +t.dataset.id });
+}
+for (const el of ['#tabs-v', '#pinned', '#tabs-h']) {
+  const box = $(el);
+  box.addEventListener('click', tabClick);
+  box.addEventListener('auxclick', e => { const t = e.target.closest('.tab'); if (t && e.button === 1) closeTab(+t.dataset.id); });
+  box.addEventListener('dblclick', e => { const t = e.target.closest('.tab'); if (t) post({ cmd: 'pin', id: +t.dataset.id }); });
+  box.addEventListener('dragstart', e => { const t = e.target.closest('.tab'); if (t) e.dataTransfer.setData('text/halo-tab', t.dataset.id); });
+  box.addEventListener('dragover', e => { const t = e.target.closest('.tab'); if (t) { e.preventDefault(); document.querySelectorAll('.dragover').forEach(n => n.classList.remove('dragover')); t.classList.add('dragover'); } });
+  box.addEventListener('drop', e => {
+    const t = e.target.closest('.tab'); const id = e.dataTransfer.getData('text/halo-tab');
+    document.querySelectorAll('.dragover').forEach(n => n.classList.remove('dragover'));
+    if (t && id) { e.preventDefault(); post({ cmd: 'move', id: +id, before: +t.dataset.id }); }
+  });
+  box.addEventListener('contextmenu', e => { const t = e.target.closest('.tab'); if (t) { e.preventDefault(); post({ cmd: 'pin', id: +t.dataset.id }); } });
+}
+$('#tabfilter').addEventListener('input', renderTabs);
+$('#newtab-v').onclick = $('#newtab-h').onclick = () => { closePanels(); post({ cmd: 'newtab' }); };
+$('#collapse').onclick = () => setS('collapsed', !S.settings.collapsed);
+$('#b-back').onclick = () => post({ cmd: 'back' });
+$('#b-fwd').onclick = () => post({ cmd: 'forward' });
+$('#b-reload').onclick = () => post({ cmd: activeTab().loading ? 'stop' : 'reload' });
+$('#b-star').onclick = () => post({ cmd: 'bookmark' });
+$('#b-themes').onclick = $('#btn-themes-v').onclick = () => openPanel('p-themes');
+$('#b-settings').onclick = $('#btn-settings-v').onclick = () => openSettings();
+$('#b-dl').onclick = () => openSettings('downloads');
+$('#b-ext').onclick = () => openPanel('p-ext');
+$('#b-home').onclick = () => post({ cmd: 'home' });
+$('#b-addext').onclick = () => { const id = $('#b-addext').dataset.id; if (id) post({ cmd: 'installExt', store: id }); };
+$('#btn-bookmarks-v').onclick = () => openPanel('p-bookmarks');
+$('#b-palette').onclick = () => openPalette();
+$('#w-min').onclick = () => post({ cmd: 'win', action: 'min' });
+$('#w-max').onclick = () => post({ cmd: 'win', action: 'max' });
+$('#w-close').onclick = () => post({ cmd: 'win', action: 'close' });
+
+// ---------- address bar + suggestions ----------
+const addr = $('#addr');
+let sugg = [], sel = -1, suggTimer = 0;
+addr.addEventListener('focus', () => { const u = activeTab().url || ''; if (!isNewtab(u)) addr.value = u; setTimeout(() => addr.select(), 0); });
+addr.addEventListener('input', () => {
+  clearTimeout(suggTimer);
+  const q = addr.value.trim();
+  if (!q) { hideSugg(); return; }
+  suggTimer = setTimeout(() => { if (S.settings.show_suggestions === false) showSugg([]); else post({ cmd: 'suggest', q }); }, 60);
+});
+addr.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const pick = sel >= 0 && sugg[sel];
+    post({ cmd: 'navigate', text: pick ? pick.url : addr.value });
+    hideSugg(); addr.blur();
+  } else if (e.key === 'Escape') { hideSugg(); addr.value = isNewtab(activeTab().url) ? '' : activeTab().url; addr.blur(); post({ cmd: 'focusContent' }); }
+  else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (!sugg.length) return; e.preventDefault();
+    sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + sugg.length + 1) % (sugg.length + 1) - 0;
+    if (sel === sugg.length) sel = -1;
+    paintSugg();
+  }
+});
+addr.addEventListener('blur', () => setTimeout(hideSugg, 150));
+function showSugg(list) {
+  if (document.activeElement !== addr || !addr.value.trim()) return;
+  const q = addr.value.trim();
+  sugg = [{ kind: 'search', title: q, url: q, label: 'Search ' + engineName() }].concat(list);
+  sel = -1; paintSugg();
+  $('#sugg').classList.add('show'); syncOverlay();
+}
+function paintSugg() {
+  $('#sugg').innerHTML = sugg.map((s, i) => '<div class="srow' + (i === sel ? ' sel' : '') + '" data-i="' + i + '">' +
+    (s.kind === 'search' ? I.search : s.kind === 'tab' ? I.tab : s.kind === 'bookmark' ? I.starOn.replace('<svg', '<svg style="width:14px;height:14px"') : I.clock) +
+    '<span class="t">' + esc(s.title || s.url) + '</span><span class="u">' + esc(s.kind === 'search' ? s.label : s.kind === 'tab' ? 'Switch to tab' : host(s.url)) + '</span></div>').join('');
+}
+function hideSugg() { if ($('#sugg').classList.contains('show')) { $('#sugg').classList.remove('show'); sugg = []; syncOverlay(); } }
+$('#sugg').addEventListener('mousedown', e => {
+  const r = e.target.closest('.srow'); if (!r) return;
+  e.preventDefault();
+  const s = sugg[+r.dataset.i];
+  if (s.kind === 'tab') post({ cmd: 'activate', id: s.id }); else post({ cmd: 'navigate', text: s.url });
+  hideSugg(); addr.blur();
+});
+
+// ---------- command bar ----------
+function commands() {
+  const c = [
+    { title: 'New tab', k: 'Ctrl+T', run: () => post({ cmd: 'newtab' }) },
+    { title: 'Reopen closed tab', k: 'Ctrl+Shift+T', run: () => post({ cmd: 'reopen' }) },
+    { title: 'Bookmark this page', k: 'Ctrl+D', run: () => post({ cmd: 'bookmark' }) },
+    { title: 'Show bookmarks', run: () => openPanel('p-bookmarks') },
+    { title: 'Toggle compact sidebar', k: 'Ctrl+Shift+B', run: () => setS('collapsed', !S.settings.collapsed) },
+    { title: 'Switch to ' + (S.settings.layout === 'horizontal' ? 'side tabs' : 'top tabs'), run: () => setS('layout', S.settings.layout === 'horizontal' ? 'vertical' : 'horizontal') },
+    { title: 'Pin or unpin this tab', run: () => post({ cmd: 'pin', id: S.active }) },
+    { title: 'Put other tabs to sleep', run: () => post({ cmd: 'sleepOthers' }) },
+    { title: 'Zoom in', k: 'Ctrl++', run: () => post({ cmd: 'zoom', d: 1 }) },
+    { title: 'Zoom out', k: 'Ctrl+-', run: () => post({ cmd: 'zoom', d: -1 }) },
+    { title: 'Reset zoom', k: 'Ctrl+0', run: () => post({ cmd: 'zoom', d: 0 }) },
+    { title: 'Themes and backgrounds', run: () => openPanel('p-themes') },
+    { title: 'Settings', k: 'Ctrl+,', run: () => openSettings() },
+    { title: 'Downloads', k: 'Ctrl+J', run: () => openSettings('downloads') },
+    { title: 'Extensions', run: () => openPanel('p-ext') },
+    { title: 'Manage extensions', run: () => openSettings('extensions') },
+    { title: 'Add extensions from the Chrome Web Store', run: () => post({ cmd: 'open', url: 'https://chromewebstore.google.com/category/extensions', newTab: true }) },
+    { title: 'Privacy and security settings', run: () => openSettings('privacy') },
+    { title: 'Site permissions', run: () => openSettings('permissions') },
+    { title: 'Search engine settings', run: () => openSettings('search') },
+    { title: 'Go home', run: () => post({ cmd: 'home' }) },
+    { title: 'Toggle bookmarks bar', run: () => setS('show_bookmarks_bar', !S.settings.show_bookmarks_bar) }
+  ];
+  for (const t of HALO_THEMES) c.push({ title: 'Theme: ' + t.name, run: () => { setS('theme', t.id); setS('custom_bg', false); } });
+  return c;
+}
+let pitems = [], psel = 0;
+function openPalette() {
+  closePanels();
+  $('#palette').classList.add('show'); syncOverlay();
+  $('#pin').value = ''; fillPalette(); $('#pin').focus();
+}
+function fillPalette() {
+  const q = $('#pin').value.trim().toLowerCase();
+  const tabs = S.tabs.filter(t => !q || (t.title || '').toLowerCase().includes(q) || (t.url || '').toLowerCase().includes(q))
+    .map(t => ({ title: t.title || 'New tab', sub: 'Tab', run: () => post({ cmd: 'activate', id: t.id }) }));
+  const cmds = commands().filter(c => !q || c.title.toLowerCase().includes(q)).map(c => ({ title: c.title, sub: c.k || 'Command', run: c.run }));
+  pitems = (q ? [{ title: 'Search ' + engineName() + ' for \u201c' + $('#pin').value.trim() + '\u201d', sub: 'Enter', run: () => post({ cmd: 'navigate', text: $('#pin').value.trim(), newTab: true }) }] : []).concat(tabs.slice(0, 8), cmds);
+  psel = 0; paintPalette();
+}
+function paintPalette() {
+  $('#plist').innerHTML = pitems.map((p, i) => '<div class="srow' + (i === psel ? ' sel' : '') + '" data-p="' + i + '">' + (p.sub === 'Tab' ? I.tab : p.sub === 'Enter' ? I.search : I.bolt) + '<span class="t">' + esc(p.title) + '</span><span class="k">' + esc(p.sub) + '</span></div>').join('');
+  const s = $('#plist .sel'); if (s) s.scrollIntoView({ block: 'nearest' });
+}
+$('#pin').addEventListener('input', fillPalette);
+$('#pin').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { psel = Math.min(pitems.length - 1, psel + 1); paintPalette(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { psel = Math.max(0, psel - 1); paintPalette(); e.preventDefault(); }
+  else if (e.key === 'Enter') { const p = pitems[psel]; closePanels(); if (p) p.run(); }
+  else if (e.key === 'Escape') { closePanels(); post({ cmd: 'focusContent' }); }
+});
+$('#plist').addEventListener('click', e => { const r = e.target.closest('[data-p]'); if (!r) return; const p = pitems[+r.dataset.p]; closePanels(); p.run(); });
+
+// ---------- keyboard (while the frame has focus) ----------
+document.addEventListener('keydown', e => {
+  const c = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  let cmd = null;
+  if (c && !e.shiftKey && k === 't') cmd = 'newtab';
+  else if (c && e.shiftKey && k === 't') cmd = 'reopen';
+  else if (c && k === 'w') cmd = 'close';
+  else if ((c && k === 'l') || (e.altKey && k === 'd') || k === 'f6') { halo.cmd('focus'); e.preventDefault(); return; }
+  else if (c && k === 'k') { openPalette(); e.preventDefault(); return; }
+  else if (c && e.shiftKey && k === 'b') { setS('collapsed', !S.settings.collapsed); e.preventDefault(); return; }
+  else if (c && k === 'tab') cmd = e.shiftKey ? 'prev' : 'next';
+  else if (c && k === 'd') cmd = 'bookmark';
+  else if (c && k === 'j') cmd = 'downloads';
+  else if (c && k === ',') cmd = 'settings';
+  else if (c && /^[1-9]$/.test(k)) cmd = 'tab' + k;
+  else if (k === 'f5' || (c && k === 'r')) cmd = 'reload';
+  else if (e.altKey && k === 'arrowleft') cmd = 'back';
+  else if (e.altKey && k === 'arrowright') cmd = 'forward';
+  else if (k === 'escape' && overlayOn) { closePanels(); post({ cmd: 'focusContent' }); return; }
+  if (cmd) { e.preventDefault(); post({ cmd: 'key', key: cmd }); }
+});
+
+// ---------- window dragging and edge resizing ----------
+const EDGE = 6;
+function edgeAt(x, y) {
+  const w = innerWidth, h = innerHeight;
+  const n = y < EDGE, s = y > h - EDGE, wv = x < EDGE, ev = x > w - EDGE;
+  return (n ? 'n' : s ? 's' : '') + (wv ? 'w' : ev ? 'e' : '');
+}
+const CURSOR = { n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize', ne: 'nesw-resize', sw: 'nesw-resize', nw: 'nwse-resize', se: 'nwse-resize' };
+document.addEventListener('mousemove', e => { const d = edgeAt(e.clientX, e.clientY); document.documentElement.style.cursor = d ? CURSOR[d] : ''; });
+document.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  const d = edgeAt(e.clientX, e.clientY);
+  if (d) { e.preventDefault(); post({ cmd: 'win', action: 'resize', dir: d }); return; }
+  if (e.target.closest('button,input,select,label,.tab,#omni,.panel,a')) return;
+  if (e.target.closest('.drag')) {
+    if (e.detail === 2) post({ cmd: 'win', action: 'max' }); else post({ cmd: 'win', action: 'drag' });
+  }
+});
+
+post({ cmd: 'ready' });
+</script>
+</body>
+</html>

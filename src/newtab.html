@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>New tab</title>
+<script src="http://halo.localhost/themes.js"></script>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 14px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; color: var(--fg); background: var(--bg); background-size: cover; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+body.animated { background-size: 400% 400%; animation: drift 24s ease-in-out infinite; }
+@keyframes drift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+#dim { position: fixed; inset: 0; background: #000; opacity: var(--dim); pointer-events: none; }
+main { position: relative; width: min(680px, 90vw); margin-top: 16vh; display: flex; flex-direction: column; align-items: center; }
+#clock { font-size: 76px; font-weight: 300; letter-spacing: -2px; line-height: 1; text-shadow: 0 2px 24px rgba(0,0,0,.25); }
+#greet { margin: 8px 0 30px; font-size: 18px; color: var(--fg-dim); }
+form { width: 100%; height: 54px; display: flex; align-items: center; gap: 12px; padding: 0 10px 0 20px; border-radius: 27px; background: var(--glass-strong); border: 1px solid var(--border); backdrop-filter: blur(24px); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+form:focus-within { box-shadow: 0 0 0 2px var(--accent), 0 12px 40px rgba(0,0,0,.3); }
+form svg { width: 20px; height: 20px; fill: none; stroke: var(--fg-dim); stroke-width: 2; stroke-linecap: round; flex: none; }
+#q { flex: 1; height: 100%; background: none; border: 0; outline: 0; color: var(--fg); font: 16px inherit; font-family: inherit; }
+#q::placeholder { color: var(--fg-dim); }
+#go { height: 38px; padding: 0 18px; border-radius: 19px; border: 0; background: var(--accent); color: #111; font: 600 14px inherit; font-family: inherit; }
+#tiles { margin-top: 34px; display: grid; grid-template-columns: repeat(4, 112px); gap: 14px; }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 6px 10px; border-radius: 16px; text-decoration: none; color: var(--fg); background: var(--glass); border: 1px solid var(--border); backdrop-filter: blur(18px); transition: transform .12s, background .12s; }
+.tile:hover { transform: translateY(-2px); background: var(--glass-strong); }
+.tile .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-weight: 700; font-size: 18px; color: #fff; background: var(--accent); overflow: hidden; }
+.tile .ic img { width: 24px; height: 24px; }
+.tile .nm { font-size: 12px; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#custom { position: fixed; right: 18px; bottom: 16px; border: 1px solid var(--border); background: var(--glass); color: var(--fg); backdrop-filter: blur(18px); padding: 9px 14px; border-radius: 12px; font: 13px inherit; font-family: inherit; }
+#custom:hover { background: var(--glass-strong); }
+/* motion */
+:root { --ease: cubic-bezier(.2,.8,.2,1); --spring: cubic-bezier(.34,1.56,.64,1); }
+#bgfade { position: fixed; inset: 0; pointer-events: none; opacity: 0; background-size: cover; }
+#orbs { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+#orbs i { position: absolute; width: 42vmax; height: 42vmax; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 38%, transparent), transparent 65%); opacity: .35; filter: blur(10px); animation: float 26s ease-in-out infinite; }
+#orbs i:nth-child(1) { left: -12vmax; top: -10vmax; }
+#orbs i:nth-child(2) { right: -14vmax; top: 20vh; animation-duration: 32s; animation-delay: -8s; }
+#orbs i:nth-child(3) { left: 30vw; bottom: -22vmax; animation-duration: 38s; animation-delay: -15s; }
+@keyframes float { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(6vw, 4vh) scale(1.1); } 66% { transform: translate(-4vw, 6vh) scale(.92); } }
+/* one calm entrance for the whole page instead of pieces dropping in separately */
+main { animation: enter .38s cubic-bezier(.25,.8,.25,1) both; }
+#orbs { animation: fade 1.2s ease both; }
+form { transition: box-shadow .2s, transform .25s var(--ease); }
+form:focus-within { transform: scale(1.015); }
+#go { transition: transform .2s var(--spring), filter .2s; }
+#go:hover { transform: scale(1.05); filter: brightness(1.08); }
+#go:active { transform: scale(.95); }
+.tile.rise { animation: up .32s cubic-bezier(.25,.8,.25,1) both; animation-delay: calc(var(--i) * 25ms + 120ms); }
+.tile { transition: transform .25s var(--spring), background .15s, box-shadow .25s; }
+.tile:hover { transform: translateY(-4px) scale(1.04); box-shadow: 0 12px 28px rgba(0,0,0,.25); }
+.tile:hover .ic { transform: rotate(-6deg) scale(1.08); }
+.tile .ic { transition: transform .3s var(--spring); }
+#custom { animation: fade .4s .2s both; transition: background .15s, transform .2s var(--spring); }
+#custom:hover { transform: translateY(-2px); }
+#clock .sep { animation: blink 2s steps(1) infinite; }
+@keyframes blink { 50% { opacity: .35; } }
+@keyframes down { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
+@keyframes up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes enter { from { opacity: 0; transform: translateY(10px) scale(.99); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+body.nomotion *, body.nomotion *::before, body.nomotion *::after { animation: none !important; transition: none !important; }
+body.nomotion #orbs { display: none; }
+</style>
+</head>
+<body>
+<div id="bgfade"></div><div id="orbs"><i></i><i></i><i></i></div><div id="dim"></div>
+<main>
+  <div id="clock"></div>
+  <div id="greet"></div>
+  <form id="f" autocomplete="off">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
+    <input id="q" placeholder="Search Google or type a URL" autofocus spellcheck="false">
+    <button id="go" type="submit">Search</button>
+  </form>
+  <div id="tiles"></div>
+</main>
+<button id="custom">Customize</button>
+<script>
+const ENGINES = { google: ['Google', 'https://www.google.com/search?q='], duckduckgo: ['DuckDuckGo', 'https://duckduckgo.com/?q='], bing: ['Bing', 'https://www.bing.com/search?q='], brave: ['Brave Search', 'https://search.brave.com/search?q='], ecosia: ['Ecosia', 'https://www.ecosia.org/search?q='] };
+let D = { settings: { theme: 'aurora', engine: 'google', show_clock: true, show_shortcuts: true }, shortcuts: [] };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function host(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return u; } }
+let lastKey = '', firstApply = true;
+function tick() {
+  const d = new Date();
+  const parts = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit' }).formatToParts(d);
+  document.getElementById('clock').innerHTML = parts.map(p => p.type === 'literal' && p.value.trim() === ':' ? '<span class="sep">:</span>' : esc(p.value)).join('');
+  const h = d.getHours();
+  document.getElementById('greet').textContent = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+}
+function apply() {
+  const s = D.settings;
+  const key = s.theme + '|' + s.custom_bg + '|' + s.bg_version;
+  const old = getComputedStyle(document.body).getPropertyValue('--bg');
+  haloApplyTheme(document.body, s);
+  document.body.classList.toggle('nomotion', s.animations === false);
+  if (lastKey && key !== lastKey && s.animations !== false && old) {
+    const f = document.getElementById('bgfade');
+    f.style.transition = 'none'; f.style.background = old; f.style.backgroundSize = 'cover'; f.style.opacity = '1';
+    void f.offsetWidth; f.style.transition = 'opacity .7s ease'; f.style.opacity = '0';
+  }
+  lastKey = key;
+  const eng = ENGINES[s.engine] || ENGINES.google;
+  document.getElementById('q').placeholder = 'Search ' + (D.engine_name || eng[0]) + ' or type a URL';
+  document.getElementById('clock').style.display = document.getElementById('greet').style.display = s.show_clock ? '' : 'none';
+  document.querySelector('main').style.marginTop = s.show_clock ? '16vh' : '26vh';
+  const tiles = document.getElementById('tiles');
+  tiles.style.display = s.show_shortcuts ? '' : 'none';
+  tiles.innerHTML = D.shortcuts.slice(0, 8).map((t, i) =>
+    '<a class="tile' + (firstApply ? ' rise' : '') + '" style="--i:' + i + '" href="' + esc(t.url) + '"><span class="ic">' + esc((host(t.url) || '?')[0].toUpperCase()) + '</span><span class="nm">' + esc(t.title || host(t.url)) + '</span></a>').join('');
+  firstApply = false;
+}
+function load() { fetch('http://halo.localhost/newtab.json', { cache: 'no-store' }).then(r => r.json()).then(d => { D = d; apply(); }).catch(apply); }
+window.haloRefresh = load;
+document.getElementById('f').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = document.getElementById('q').value.trim();
+  if (!v) return;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) { location.href = v; return; }
+  if (!/\s/.test(v) && (/^[^\s]+\.[a-z]{2,}(:\d+)?(\/.*)?$/i.test(v) || /^localhost(:\d+)?/i.test(v))) { location.href = (/^localhost/i.test(v) ? 'http://' : 'https://') + v; return; }
+  const eng = ENGINES[D.settings.engine] || ENGINES.google;
+  location.href = D.search_url ? D.search_url.replace('{q}', encodeURIComponent(v)) : eng[1] + encodeURIComponent(v);
+});
+document.getElementById('custom').onclick = () => { try { window.ipc.postMessage(JSON.stringify({ t: 'key', cmd: 'themes' })); } catch (e) {} };
+tick(); setInterval(tick, 1000 * 10); load();
+</script>
+</body>
+</html>

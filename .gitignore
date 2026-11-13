@@ -1,0 +1,13 @@
+# Build output
+/target
+
+# Test screenshots made with --screenshot
+/shots
+
+# Editor and system files
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store

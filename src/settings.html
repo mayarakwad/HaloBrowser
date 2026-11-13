@@ -1,0 +1,367 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="http://halo.localhost/themes.js"></script>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; color: var(--fg); background: var(--bg); background-size: cover; display: flex; overflow: hidden; }
+#dim { position: fixed; inset: 0; background: #000; opacity: var(--dim); pointer-events: none; }
+nav { position: relative; width: 240px; flex: none; padding: 26px 12px; display: flex; flex-direction: column; gap: 2px; background: var(--glass); backdrop-filter: blur(24px); border-right: 1px solid var(--border); overflow-y: auto; }
+nav h1 { font-size: 20px; font-weight: 650; margin: 0 12px 6px; }
+nav .search { margin: 6px 4px 12px; display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 34px; border-radius: 10px; background: var(--hover); border: 1px solid var(--border); }
+nav .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--fg); font: inherit; }
+nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: var(--fg); text-decoration: none; cursor: default; transition: background .15s; }
+nav a:hover { background: var(--hover); }
+nav a.on { background: var(--active); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+nav a .n { margin-left: auto; font-size: 11px; padding: 1px 7px; border-radius: 8px; background: var(--accent); color: #111; font-weight: 700; }
+nav svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; opacity: .85; }
+main { position: relative; flex: 1; overflow-y: auto; padding: 34px 44px 60px; }
+.wrap { max-width: 760px; animation: rise .3s cubic-bezier(.25,.8,.25,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+body.nomotion .wrap { animation: none; }
+h2 { font-size: 26px; font-weight: 650; margin: 0 0 4px; }
+.lead { color: var(--fg-dim); margin-bottom: 18px; }
+h3 { margin: 26px 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--fg-dim); font-weight: 600; }
+.card { background: var(--glass-strong); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; backdrop-filter: blur(24px); }
+.row { display: flex; align-items: center; gap: 16px; padding: 13px 16px; border-top: 1px solid var(--border); }
+.row:first-child { border-top: 0; }
+.row .t { flex: 1; min-width: 0; }
+.row .d { color: var(--fg-dim); font-size: 12.5px; margin-top: 1px; }
+.row .restart { display: inline-block; margin-left: 6px; font-size: 11px; padding: 0 6px; border-radius: 6px; background: var(--hover); color: var(--fg-dim); }
+.tog { width: 40px; height: 22px; border-radius: 11px; background: var(--border); position: relative; flex: none; border: 0; transition: background .2s; }
+.tog::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .22s cubic-bezier(.34,1.56,.64,1); box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.tog.on { background: var(--accent); }
+.tog.on::after { left: 21px; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--hover); border: 1px solid var(--border); flex-wrap: wrap; }
+.seg button { border: 0; background: none; color: var(--fg); font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 8px; transition: background .15s; }
+.seg button:hover { background: var(--hover); }
+.seg button.on { background: var(--accent); color: #111; font-weight: 600; }
+select, input[type=text] { background: var(--hover); color: var(--fg); border: 1px solid var(--border); border-radius: 9px; padding: 7px 10px; font: inherit; outline: 0; }
+input[type=text] { width: 280px; }
+input[type=text]:focus, select:focus { border-color: var(--accent); }
+select option { background: #222; color: #eee; }
+.btn { border: 0; padding: 8px 14px; border-radius: 10px; background: var(--accent); color: #111; font: 600 13px inherit; font-family: inherit; white-space: nowrap; transition: transform .15s, filter .15s; }
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: scale(.96); }
+.btn.ghost { background: var(--hover); color: var(--fg); border: 1px solid var(--border); font-weight: 500; }
+.btn.danger { background: #e5484d; color: #fff; }
+.btn:disabled { opacity: .5; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; padding: 14px 16px; }
+.sw { height: 64px; border-radius: 12px; border: 2px solid transparent; position: relative; background-size: cover; box-shadow: inset 0 0 0 1px var(--border); transition: transform .2s; }
+.sw:hover { transform: translateY(-2px); }
+.sw.on { border-color: var(--accent); }
+.sw span { position: absolute; left: 6px; bottom: 5px; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px; background: rgba(0,0,0,.4); color: #fff; }
+.item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-top: 1px solid var(--border); }
+.item:first-child { border-top: 0; }
+.item .ic { width: 36px; height: 36px; border-radius: 10px; flex: none; display: grid; place-items: center; background: var(--hover); font-weight: 700; overflow: hidden; }
+.item .ic img { width: 28px; height: 28px; }
+.item .t { flex: 1; min-width: 0; }
+.item .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .d { color: var(--fg-dim); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .acts { display: flex; gap: 6px; align-items: center; flex: none; }
+.bar { height: 4px; border-radius: 2px; background: var(--hover); overflow: hidden; margin-top: 6px; position: relative; }
+.bar::after { content: ''; position: absolute; top: 0; bottom: 0; width: 35%; background: var(--accent); border-radius: 2px; animation: indet 1.2s ease-in-out infinite; }
+@keyframes indet { from { left: -35%; } to { left: 100%; } }
+.state { font-size: 12px; padding: 1px 8px; border-radius: 8px; background: var(--hover); }
+.state.failed { background: rgba(229,72,77,.25); }
+.empty { padding: 26px 16px; text-align: center; color: var(--fg-dim); }
+.note { padding: 12px 16px; border-radius: 12px; margin: 10px 0; background: color-mix(in srgb, var(--accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+.note.err { background: rgba(229,72,77,.16); border-color: rgba(229,72,77,.45); }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--fg-dim); border-top-color: var(--accent); animation: sp .8s linear infinite; display: inline-block; vertical-align: -2px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+.add { display: flex; gap: 8px; padding: 14px 16px; flex-wrap: wrap; align-items: center; }
+.add input { flex: 1; min-width: 220px; }
+code { font-family: Consolas, monospace; font-size: 12.5px; padding: 1px 5px; border-radius: 5px; background: var(--hover); }
+.hit { outline: 2px solid var(--accent); outline-offset: -2px; }
+</style>
+</head>
+<body>
+<div id="dim"></div>
+<nav id="nav"></nav>
+<main><div class="wrap" id="main"></div></main>
+<script>
+const post = m => { try { window.ipc.postMessage(JSON.stringify({ t: 'ui', m })); } catch (e) {} };
+const set = (key, value) => post({ cmd: 'setting', key, value });
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ICON = {
+  appearance: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7.5" r="1"/></svg>',
+  startup: '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>',
+  search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
+  tabs: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 6V4h8v2"/></svg>',
+  privacy: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
+  permissions: '<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+  downloads: '<svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+  extensions: '<svg viewBox="0 0 24 24"><path d="M9 4h4v3a2 2 0 1 0 4 0V4h3v6h-3a2 2 0 1 0 0 4h3v6h-6v-3a2 2 0 1 0-4 0v3H4v-6h3a2 2 0 1 0 0-4H4V4z"/></svg>',
+  system: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+  about: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>'
+};
+const SECTIONS = [
+  ['appearance', 'Appearance'], ['startup', 'On start-up & home'], ['search', 'Search & address bar'], ['tabs', 'Tabs'],
+  ['privacy', 'Privacy & security'], ['permissions', 'Site permissions'], ['downloads', 'Downloads'],
+  ['extensions', 'Extensions'], ['system', 'System'], ['about', 'About Halo']
+];
+// Extensions people often add (Chrome Web Store ids).
+const RECOMMENDED = [
+  ['ddkjiahejlhfcafbddmgiahcphecmpfh', 'uBlock Origin Lite', 'Blocks ads and trackers.'],
+  ['nngceckbapebfimnlniiiahkandclblb', 'Bitwarden', 'Password manager.'],
+  ['eimadpbcbfnmbkopoojfekhnkhdbieeh', 'Dark Reader', 'Dark mode for every website.'],
+  ['pkehgijcmpdhfbdbbnkijodmdjhbjlgp', 'Privacy Badger', 'Learns to block invisible trackers.'],
+  ['mnjggcdmjocbbbhaepdhchncahnbgone', 'SponsorBlock', 'Skips sponsored parts of videos.']
+];
+const UBLOCK = RECOMMENDED[0][0];
+let D = null, section = (location.hash || '#appearance').slice(1), filter = '', pending = false;
+
+function nav() {
+  const dl = D ? D.downloads.filter(d => d.state === 'downloading').length : 0;
+  $('#nav').innerHTML = '<h1>Settings</h1><label class="search">' + ICON.search + '<input id="find" placeholder="Search settings" value="' + esc(filter) + '" spellcheck="false"></label>' +
+    SECTIONS.map(([id, name]) => '<a data-s="' + id + '" class="' + (id === section && !filter ? 'on' : '') + '">' + ICON[id] + name + (id === 'downloads' && dl ? '<span class="n">' + dl + '</span>' : '') + (id === 'extensions' && D && D.extensions.length ? '<span class="n">' + D.extensions.length + '</span>' : '') + '</a>').join('');
+  const f = $('#find');
+  f.oninput = () => { filter = f.value.trim().toLowerCase(); render(true); };
+}
+
+// ---------- building blocks ----------
+const S = () => D.settings;
+function row(label, desc, control, extra) {
+  return '<div class="row" data-find="' + esc((label + ' ' + (desc || '')).toLowerCase()) + '"><div class="t"><div>' + label + (extra || '') + '</div>' + (desc ? '<div class="d">' + desc + '</div>' : '') + '</div>' + control + '</div>';
+}
+function tog(key, label, desc, restart) {
+  return row(label, desc, '<button class="tog' + (S()[key] ? ' on' : '') + '" data-tog="' + key + '"></button>', restart ? '<span class="restart">after restart</span>' : '');
+}
+function seg(key, opts, label, desc) {
+  return row(label, desc, '<div class="seg">' + opts.map(([v, l]) => '<button class="' + (S()[key] === v ? 'on' : '') + '" data-seg="' + key + '" data-v="' + esc(v) + '">' + l + '</button>').join('') + '</div>');
+}
+function sel(key, opts, label, desc) {
+  return row(label, desc, '<select data-sel="' + key + '">' + opts.map(([v, l]) => '<option value="' + v + '"' + (String(S()[key]) === String(v) ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>');
+}
+function text(key, label, desc, ph, restart) {
+  return row(label, desc, '<input type="text" data-text="' + key + '" value="' + esc(S()[key]) + '" placeholder="' + esc(ph || '') + '" spellcheck="false">', restart ? '<span class="restart">after restart</span>' : '');
+}
+const card = rows => '<div class="card">' + rows.join('') + '</div>';
+function size(n) { if (!n) return ''; const u = ['B', 'KB', 'MB', 'GB']; let i = 0; while (n >= 1024 && i < 3) { n /= 1024; i++; } return n.toFixed(i ? 1 : 0) + ' ' + u[i]; }
+function when(t) { if (!t) return ''; const d = new Date(t * 1000); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+
+// ---------- sections ----------
+const PAGES = {
+  appearance() {
+    const s = S();
+    let sw = '<div class="grid">' + HALO_THEMES.map(t => '<div class="sw' + (!s.custom_bg && s.theme === t.id ? ' on' : '') + '" data-theme="' + t.id + '" style="background:' + t.bg + ';background-size:cover"><span>' + t.name + '</span></div>').join('') + '</div>';
+    return '<h2>Appearance</h2><div class="lead">How Halo looks. Your own background picture, accent colour and dimming are in the theme panel.</div>' +
+      '<h3>Theme</h3><div class="card">' + sw + row('Background picture, accent colour and dimming', 'Opens the theme panel next to the address bar.', '<button class="btn ghost" data-act="themes">Open theme panel</button>') + '</div>' +
+      '<h3>Layout</h3>' + card([
+        seg('layout', [['vertical', 'Side tabs'], ['horizontal', 'Top tabs']], 'Tab position', 'Side tabs give long titles room; top tabs feel like a classic browser.'),
+        tog('collapsed', 'Compact sidebar', 'Shrink the side tabs to icons (Ctrl+Shift+B).'),
+        seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']], 'Toolbar size', 'Compact makes the toolbar and tabs slimmer to show more of the page.'),
+        seg('corners', [['rounded', 'Rounded'], ['square', 'Square']], 'Corners', 'The shape of tabs, the address bar and the page frame.'),
+        tog('show_bookmarks_bar', 'Show bookmarks bar', 'Your bookmarks in a row under the address bar.'),
+        tog('show_home', 'Show home button', 'A house button next to reload that opens your home page.'),
+        tog('animations', 'Animations', 'Smooth motion for tabs, menus, theme changes and the new tab page.')
+      ]) +
+      '<h3>Pages</h3>' + card([
+        sel('default_zoom', [[0.67, '67%'], [0.75, '75%'], [0.8, '80%'], [0.9, '90%'], [1, '100%'], [1.1, '110%'], [1.25, '125%'], [1.5, '150%'], [1.75, '175%'], [2, '200%']], 'Page zoom', 'How large pages are when they open. Ctrl+plus / minus change one tab.'),
+        tog('show_clock', 'Clock on the new tab page', 'A large clock and greeting above the search box.'),
+        tog('show_shortcuts', 'Shortcuts on the new tab page', 'Bookmarks and most visited sites under the search box.')
+      ]);
+  },
+  startup() {
+    return '<h2>On start-up & home</h2><div class="lead">What Halo opens when it starts, and where the home button goes.</div>' +
+      '<h3>On start-up</h3>' + card([
+        seg('startup', [['restore', 'Continue where I left off'], ['newtab', 'Open a new tab'], ['home', 'Open my home page']], 'When Halo starts', 'Reopened tabs stay asleep until you click them, so start-up stays fast.')
+      ]) +
+      '<h3>Home page</h3>' + card([
+        text('home_url', 'Home page address', 'Leave empty to use the new tab page.', 'New tab page'),
+        tog('show_home', 'Show home button', 'Adds a house button next to reload.')
+      ]);
+  },
+  search() {
+    const s = S();
+    const eng = D.engines.map(e => [e.id, e.name + (e.id === 'google' ? ' (default)' : '')]).concat([['custom', 'Custom']]);
+    return '<h2>Search & address bar</h2><div class="lead">Google is the default. Type in the address bar or the new tab page to search.</div>' +
+      '<h3>Search engine</h3>' + card([
+        row('Search engine used in the address bar', '', '<div class="seg">' + eng.map(([v, l]) => '<button class="' + (s.engine === v ? 'on' : '') + '" data-seg="engine" data-v="' + v + '">' + l + '</button>').join('') + '</div>'),
+        text('custom_engine_name', 'Custom engine name', 'Shown in the address bar when Custom is chosen.', 'My search'),
+        text('custom_engine_url', 'Custom engine address', 'Put <code>%s</code> where the search words go, e.g. https://example.com/?q=%s', 'https://…?q=%s')
+      ]) +
+      (s.engine === 'custom' && !(s.custom_engine_url || '').includes('%s') ? '<div class="note err">The custom address needs <code>%s</code> in it; Google is used until then.</div>' : '') +
+      '<h3>Address bar</h3>' + card([
+        tog('show_suggestions', 'Suggestions while typing', 'Matching open tabs, bookmarks and history under the address bar.'),
+        tog('full_urls', 'Always show full addresses', 'Show https:// and www. instead of the short form.')
+      ]);
+  },
+  tabs() {
+    return '<h2>Tabs</h2><div class="lead">How tabs open, close and rest.</div>' + card([
+      seg('new_tab_position', [['next', 'Next to the current tab'], ['end', 'At the end']], 'New tabs open', ''),
+      tog('close_with_last_tab', 'Close the window with the last tab', 'When off, closing the last tab leaves a new tab open.'),
+      sel('sleep_minutes', [[0, 'Never'], [5, 'After 5 minutes'], [15, 'After 15 minutes'], [30, 'After 30 minutes'], [60, 'After 1 hour'], [120, 'After 2 hours']], 'Sleeping tabs', 'Unused tabs are unloaded to free memory and speed things up. Tabs playing sound stay awake.'),
+      row('Put other tabs to sleep now', 'Frees memory used by every tab except the one you are on.', '<button class="btn ghost" data-act="sleepOthers">Sleep now</button>')
+    ]);
+  },
+  privacy() {
+    const hasUb = D.extensions.some(e => e.store_id === UBLOCK);
+    const busy = D.installing.includes(UBLOCK);
+    return '<h2>Privacy & security</h2><div class="lead">Protections in the spirit of privacy-first browsers: fewer trackers, safer connections, less left behind.</div>' +
+      '<h3>Protection</h3>' + card([
+        row('Block ads and trackers', hasUb ? 'uBlock Origin Lite is installed and working on every site.' : 'Adds uBlock Origin Lite from the Chrome Web Store.', hasUb ? '<span class="state">On</span>' : busy ? '<span class="spin"></span>' : '<button class="btn" data-install="' + UBLOCK + '">Add blocker</button>'),
+        tog('https_only', 'Always use secure connections (HTTPS-only)', 'Plain http:// sites on the internet are opened over https://.'),
+        tog('block_popups', 'Block pop-up windows', 'Stops sites from opening extra windows; links that open a new window still become tabs.'),
+        tog('javascript', 'Allow JavaScript', 'Most sites need it. Applies to tabs opened from now on.'),
+        tog('autoplay', 'Allow videos to play by themselves', 'Applies to tabs opened from now on.'),
+        tog('autofill', 'Fill in forms for me', 'Remember and suggest form entries such as addresses. Applies to new tabs.')
+      ]) +
+      '<h3>Clear data</h3>' + card([
+        tog('clear_history_on_exit', 'Clear history when I quit', 'Visited sites are forgotten each time you close Halo.'),
+        tog('clear_site_data_on_exit', 'Clear cookies and site data when I quit', 'You will be signed out of sites each time.'),
+        row('Browsing history', D.history + ' sites remembered.', '<button class="btn ghost" data-act="clearHistory">Clear history</button>'),
+        row('Cookies and site data', 'Signs you out of websites and removes what they stored.', '<button class="btn ghost" data-act="clearSiteData">Clear now</button>')
+      ]);
+  },
+  permissions() {
+    const p = (key, label, desc) => seg(key, [['ask', 'Ask'], ['allow', 'Allow'], ['block', 'Block']], label, desc);
+    return '<h2>Site permissions</h2><div class="lead">What websites may use. "Ask" shows a prompt each time a site wants it.</div>' + card([
+      p('perm_camera', 'Camera', 'Video calls and photo sites.'),
+      p('perm_microphone', 'Microphone', 'Calls and voice input.'),
+      p('perm_location', 'Location', 'Maps and local results.'),
+      p('perm_notifications', 'Notifications', 'Messages from sites while you browse.'),
+      p('perm_clipboard', 'Read the clipboard', 'Sites pasting what you copied.'),
+      p('perm_downloads', 'Several downloads at once', 'A site downloading many files in a row.')
+    ]);
+  },
+  downloads() {
+    const s = S();
+    const list = D.downloads;
+    const items = list.length ? list.map(d => {
+      const st = d.state === 'downloading' ? '<span class="state">' + (d.bytes ? size(d.bytes) + ' so far' : 'Starting…') + '</span>' : d.state === 'failed' ? '<span class="state failed">Failed</span>' : '<span class="state">' + size(d.bytes) + '</span>';
+      const acts = d.state === 'done' ? '<button class="btn ghost" data-dl="openDownload" data-id="' + d.id + '">Open</button><button class="btn ghost" data-dl="showDownload" data-id="' + d.id + '">Show in folder</button>'
+        : d.state === 'failed' ? '<button class="btn ghost" data-dl="retryDownload" data-id="' + d.id + '">Retry</button>' : '';
+      return '<div class="item" data-find="' + esc((d.file + ' ' + d.url).toLowerCase()) + '"><div class="ic">' + ICON.downloads + '</div><div class="t"><div class="nm">' + esc(d.file || 'download') + '</div><div class="d">' + esc(d.url) + ' · ' + when(d.started) + '</div>' + (d.state === 'downloading' ? '<div class="bar"></div>' : '') + '</div><div class="acts">' + st + acts + '<button class="btn ghost" data-dl="removeDownload" data-id="' + d.id + '" title="Remove from list">✕</button></div></div>';
+    }).join('') : '<div class="empty">Files you download appear here.</div>';
+    return '<h2>Downloads</h2><div class="lead">Everything you downloaded, newest first (Ctrl+J).</div>' +
+      '<h3>Files</h3><div class="card">' + items + '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" data-act="openDownloadsFolder">Open downloads folder</button>' + (list.length ? '<button class="btn ghost" data-act="clearDownloads">Clear list</button>' : '') + '</div>' +
+      '<h3>Where files go</h3>' + card([
+        row('Download location', esc(s.download_dir || D.default_download_dir), '<div style="display:flex;gap:6px"><button class="btn ghost" data-act="pickDownloadDir">Change</button>' + (s.download_dir ? '<button class="btn ghost" data-reset="download_dir">Default</button>' : '') + '</div>'),
+        tog('ask_download', 'Ask where to save each file', 'A save window opens for every download.'),
+        tog('show_downloads_on_start', 'Highlight the downloads button when a download starts', '')
+      ]);
+  },
+  extensions() {
+    const exts = D.extensions;
+    const off = !D.boot.extensions_enabled;
+    let h = '<h2>Extensions</h2><div class="lead">Add Chrome Web Store extensions: paste a store link (or open the store and use “Add to Halo” in the address bar).</div>';
+    if (off) h += '<div class="note err">Extensions are switched off. Turn them on in System and restart Halo.</div>';
+    if (D.ext_error) h += '<div class="note err">' + esc(D.ext_error) + '</div>';
+    if (D.installing.length) h += '<div class="note"><span class="spin"></span>&nbsp; Adding ' + D.installing.length + ' extension' + (D.installing.length > 1 ? 's' : '') + '…</div>';
+    h += '<h3>Add an extension</h3><div class="card"><div class="add"><input type="text" id="storeurl" placeholder="Chrome Web Store link or extension id" spellcheck="false"><button class="btn" data-act="installStore">Add</button></div>' +
+      row('Browse the Chrome Web Store', 'Find an extension, then press “Add to Halo” in the address bar.', '<button class="btn ghost" data-open="https://chromewebstore.google.com/category/extensions">Open store</button>') +
+      row('Install from a file', 'A .crx or .zip extension package.', '<button class="btn ghost" data-act="installExtFile">Choose file</button>') +
+      row('Load an unpacked extension', 'For developers: a folder with a manifest.json.', '<button class="btn ghost" data-act="loadUnpacked">Choose folder</button>') + '</div>';
+    h += '<h3>Installed</h3><div class="card">' + (exts.length ? exts.map(e => '<div class="item" data-find="' + esc((e.name + ' ' + e.description).toLowerCase()) + '"><div class="ic">' + (e.icon ? '<img src="http://halo.localhost/exticon?id=' + encodeURIComponent(e.id) + '">' : esc((e.name || '?')[0])) + '</div><div class="t"><div class="nm">' + esc(e.name) + (e.version ? ' <span class="d" style="display:inline">' + esc(e.version) + '</span>' : '') + '</div><div class="d">' + esc(e.description || e.id) + '</div></div><div class="acts">' +
+      (e.popup ? '<button class="btn ghost" data-ext="openExt" data-kind="popup" data-id="' + esc(e.id) + '">Open</button>' : '') +
+      (e.options ? '<button class="btn ghost" data-ext="openExt" data-kind="options" data-id="' + esc(e.id) + '">Options</button>' : '') +
+      '<button class="btn ghost" data-ext="removeExt" data-id="' + esc(e.id) + '">Remove</button><button class="tog' + (e.enabled ? ' on' : '') + '" data-exttog="' + esc(e.id) + '" title="On / off"></button></div></div>').join('') : '<div class="empty">No extensions yet.</div>') + '</div>';
+    const rec = RECOMMENDED.filter(r => !exts.some(e => e.store_id === r[0]));
+    if (rec.length) h += '<h3>Popular</h3><div class="card">' + rec.map(r => '<div class="item"><div class="ic">' + esc(r[1][0]) + '</div><div class="t"><div class="nm">' + r[1] + '</div><div class="d">' + r[2] + '</div></div><div class="acts">' + (D.installing.includes(r[0]) ? '<span class="spin"></span>' : '<button class="btn" data-install="' + r[0] + '">Add</button>') + '</div></div>').join('') + '</div>';
+    h += '<div class="lead" style="margin-top:14px;font-size:12.5px">Extensions run inside the page engine. Their toolbar pop-ups open as a tab here, because the engine has no extension toolbar.</div>';
+    return h;
+  },
+  system() {
+    const b = D.boot, s = S();
+    const changed = b.hardware_acceleration !== s.hardware_acceleration || b.proxy !== s.proxy || b.extensions_enabled !== s.extensions_enabled;
+    return '<h2>System</h2><div class="lead">Engine options. Some take effect when Halo starts again.</div>' +
+      (changed ? '<div class="note" style="display:flex;align-items:center;gap:12px"><div style="flex:1">Restart Halo to apply your changes. Your tabs come back.</div><button class="btn" data-act="restart">Restart now</button></div>' : '') +
+      card([
+        tog('hardware_acceleration', 'Use graphics acceleration', 'Draw pages with the graphics card. Turn off if pages flicker or look broken.', true),
+        tog('extensions_enabled', 'Allow extensions', '', true),
+        text('proxy', 'Proxy server', 'Send traffic through a proxy, e.g. <code>http://host:8080</code> or <code>socks5://host:1080</code>. Empty for none.', 'No proxy', true),
+        text('user_agent', 'Custom user agent', 'Tell sites you are a different browser. Empty for the normal one. Applies to new tabs.', 'Default')
+      ]);
+  },
+  about() {
+    const m = navigator.userAgent.match(/(?:Edg|Chrome)\/([\d.]+)/);
+    return '<h2>About Halo</h2><div class="lead">A fast, light browser written in Rust.</div>' + card([
+      row('Halo', 'Version ' + esc(D.version), ''),
+      row('Page engine', 'Blink rendering and the V8 JavaScript engine' + (m ? ' (Chromium ' + esc(m[1]) + ')' : ''), ''),
+      row('Your data', esc(D.data_dir) + ' · ' + D.bookmarks + ' bookmarks, ' + D.history + ' sites in history', ''),
+      row('Reset settings', 'Put every setting back to how it started. Bookmarks, history and extensions stay.', '<button class="btn danger" data-act="reset">Reset</button>')
+    ]);
+  }
+};
+
+function render(force) {
+  if (!D) return;
+  haloApplyTheme(document.body, D.settings);
+  document.body.classList.toggle('nomotion', D.settings.animations === false);
+  // don't redraw under someone typing
+  const a = document.activeElement;
+  if (!force && a && a.tagName === 'INPUT' && a.type === 'text' && a.id !== 'find') { pending = true; return; }
+  pending = false;
+  nav();
+  if (force) { const f = $('#find'); f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  let html;
+  if (filter) {
+    // search across every section
+    html = '<h2>Results for “' + esc(filter) + '”</h2>';
+    let any = false;
+    for (const [id, name] of SECTIONS) {
+      const tmp = document.createElement('div'); tmp.innerHTML = PAGES[id]();
+      const hits = Array.from(tmp.querySelectorAll('[data-find]')).filter(r => r.dataset.find.includes(filter));
+      if (hits.length) { any = true; html += '<h3>' + name + '</h3><div class="card">' + hits.map(h => h.outerHTML).join('') + '</div>'; }
+    }
+    if (!any) html += '<div class="empty">No settings match.</div>';
+  } else html = PAGES[section] ? PAGES[section]() : PAGES.appearance();
+  const scroll = document.querySelector('main').scrollTop;
+  const key = filter + '|' + section;
+  $('#main').innerHTML = html;
+  if ($('#main').dataset.key === key) { $('#main').style.animation = 'none'; document.querySelector('main').scrollTop = scroll; }
+  else { $('#main').style.animation = ''; $('#main').dataset.key = key; }
+  document.title = 'Settings';
+}
+
+window.haloPage = {
+  update(d) { D = d; render(); },
+  go(s) { if (s) { section = s; filter = ''; history.replaceState(null, '', '#' + s); } render(); }
+};
+
+document.addEventListener('focusout', () => setTimeout(() => { if (pending) render(); }, 0));
+document.addEventListener('click', e => {
+  const n = e.target.closest('[data-s]');
+  if (n) { section = n.dataset.s; filter = ''; history.replaceState(null, '', '#' + section); render(); return; }
+  const t = e.target.closest('[data-tog]'); if (t) { set(t.dataset.tog, !S()[t.dataset.tog]); return; }
+  const g = e.target.closest('[data-seg]'); if (g) { set(g.dataset.seg, g.dataset.v); return; }
+  const th = e.target.closest('[data-theme]'); if (th) { set('theme', th.dataset.theme); set('custom_bg', false); return; }
+  const r = e.target.closest('[data-reset]'); if (r) { set(r.dataset.reset, ''); return; }
+  const ins = e.target.closest('[data-install]'); if (ins) { post({ cmd: 'installExt', store: ins.dataset.install }); return; }
+  const o = e.target.closest('[data-open]'); if (o) { post({ cmd: 'open', url: o.dataset.open, newTab: true }); return; }
+  const dl = e.target.closest('[data-dl]'); if (dl) { post({ cmd: dl.dataset.dl, id: +dl.dataset.id }); return; }
+  const ex = e.target.closest('[data-ext]'); if (ex) {
+    if (ex.dataset.ext === 'removeExt' && !confirm('Remove this extension?')) return;
+    post({ cmd: ex.dataset.ext, ext: ex.dataset.id, kind: ex.dataset.kind || '' }); return;
+  }
+  const et = e.target.closest('[data-exttog]'); if (et) { et.classList.toggle('on'); post({ cmd: 'toggleExt', ext: et.dataset.exttog, on: et.classList.contains('on') }); return; }
+  const act = e.target.closest('[data-act]'); if (!act) return;
+  const a = act.dataset.act;
+  if (a === 'themes') post({ cmd: 'key', key: 'themes' });
+  else if (a === 'installStore') { const v = $('#storeurl').value.trim(); if (v) post({ cmd: 'installExt', store: v }); }
+  else if (a === 'reset') { if (confirm('Reset every setting?')) post({ cmd: 'resetSettings' }); }
+  else if (a === 'clearHistory') { post({ cmd: 'clearHistory' }); act.textContent = 'Cleared'; }
+  else post({ cmd: a });
+});
+document.addEventListener('change', e => {
+  const s = e.target.closest('[data-sel]');
+  if (s) { const v = s.value; set(s.dataset.sel, isNaN(+v) ? v : +v); return; }
+  const t = e.target.closest('[data-text]');
+  if (t) set(t.dataset.text, t.value.trim());
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (e.target.id === 'storeurl') { const v = e.target.value.trim(); if (v) post({ cmd: 'installExt', store: v }); }
+    else if (e.target.dataset && e.target.dataset.text) e.target.blur();
+  }
+});
+post({ cmd: 'pageReady' });
+</script>
+</body>
+</html>
