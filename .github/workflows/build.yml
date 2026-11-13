@@ -26,8 +26,14 @@ jobs:
       - name: Build
         run: cargo build --release --locked
 
-      - name: Upload halo-browser.exe
+      - name: Make the installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target/release/halo-browser.exe dist/HaloSetup.exe
+
+      - name: Upload HaloSetup.exe
         uses: actions/upload-artifact@v4
         with:
-          name: halo-browser-windows-x64
-          path: target/release/halo-browser.exe
+          name: HaloSetup-windows-x64
+          path: dist/HaloSetup.exe

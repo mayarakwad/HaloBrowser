@@ -217,6 +217,7 @@ impl App {
             "version": VERSION,
             "data_dir": self.dir.display().to_string(),
             "default_download_dir": default_download_dir().display().to_string(),
+            "installed": installed(),
         });
         let js = format!("window.haloPage&&haloPage.update({state})");
         for t in pages {
@@ -658,5 +659,17 @@ impl App {
                 let _ = std::process::Command::new(exe).spawn();
             }
         }
+    }
+}
+
+/// Whether this copy of Halo is the one installed by the setup wizard.
+fn installed() -> bool {
+    #[cfg(windows)]
+    {
+        crate::setup::running_installed()
+    }
+    #[cfg(not(windows))]
+    {
+        false
     }
 }

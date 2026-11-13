@@ -427,6 +427,14 @@ impl App {
                     open_path(&x.folder, false);
                 }
             }
+            "defaultApps" => {
+                #[cfg(windows)]
+                crate::setup::open_default_apps();
+            }
+            "uninstallHalo" => {
+                #[cfg(windows)]
+                crate::setup::start_uninstaller();
+            }
             "restart" => {
                 self.restart = true;
                 self.quit = true;

@@ -8,6 +8,8 @@ mod capture;
 mod common;
 mod ext;
 mod features;
+#[cfg(windows)]
+mod setup;
 mod store;
 
 use std::collections::HashMap;
@@ -26,6 +28,26 @@ use wry::{Rect, WebContext, WebViewBuilder};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    // Installer and uninstaller: "HaloSetup.exe" (or --setup) opens the setup wizard,
+    // --uninstall is what Windows runs from "Installed apps".
+    #[cfg(windows)]
+    {
+        let named_setup = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_lowercase()))
+            .map(|s| s.contains("setup") || s.contains("install"))
+            .unwrap_or(false);
+        let shot = args.iter().position(|a| a == "--screenshot").and_then(|i| args.get(i + 1)).map(PathBuf::from);
+        if args.iter().any(|a| a == "--uninstall") {
+            setup::run(setup::Mode::Uninstall, shot);
+            return;
+        }
+        if named_setup || args.iter().any(|a| a == "--setup") {
+            setup::run(setup::Mode::Install, shot);
+            return;
+        }
+    }
     let mut shot_path: Option<PathBuf> = None;
     let mut open_urls: Vec<String> = Vec::new();
     let mut look: Vec<(String, String)> = Vec::new();

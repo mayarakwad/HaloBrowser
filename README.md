@@ -21,6 +21,18 @@ Pages are drawn by **Blink** and run on the **V8** JavaScript engine (through th
 - The Microsoft Edge WebView2 Runtime (already installed on Windows 11 and most Windows 10 PCs; otherwise get the “Evergreen” runtime from Microsoft)
 - To build it yourself: [Rust](https://rustup.rs) 1.85 or newer with the MSVC toolchain
 
+## Install
+
+Download **HaloSetup.exe** (from the Releases page, or from the latest run in the **Actions** tab) and open it. The setup wizard:
+
+1. welcomes you (and offers to update an existing install, keeping your data),
+2. asks where to install (default `%LOCALAPPDATA%\Programs\Halo`) and whether to add Start menu and desktop shortcuts and register Halo as a web browser,
+3. lets you pick a starting theme, side or top tabs, and a search engine,
+4. installs — no administrator rights needed,
+5. offers to open Halo and to make it your default browser.
+
+Halo then appears in Windows' **Installed apps**, where you can uninstall it (you choose whether to keep your bookmarks and settings). Settings → About Halo also has *Make default* and *Uninstall* buttons.
+
 ## Build and run
 
 ```
@@ -30,7 +42,13 @@ target\release\halo-browser.exe
 
 You can also pass addresses to open: `halo-browser.exe example.com`.
 
-Every push to GitHub builds Halo automatically (see the **Actions** tab); the finished `halo-browser.exe` is attached to each run as a download.
+To make the installer, copy the release build and name it `HaloSetup.exe` (the same program opens the setup wizard when its name contains *setup*):
+
+```
+copy target\release\halo-browser.exe dist\HaloSetup.exe
+```
+
+Every push to GitHub builds Halo automatically (see the **Actions** tab); the finished `HaloSetup.exe` is attached to each run as a download.
 
 ## Keyboard shortcuts
 
@@ -64,6 +82,8 @@ Settings, bookmarks, history, the session and downloads list are kept in `%LOCAL
 | `src/ext.rs` | Chrome Web Store download, unpacking, the engine's extension list |
 | `src/store.rs` | Settings and saved data |
 | `src/capture.rs` | Window screenshot (used by `--screenshot <file.png>`) |
+| `src/setup.rs`, `src/setup.html` | Setup wizard and uninstaller |
+| `build.rs` | Draws the app icon and adds it, with version details, to the program |
 | `src/ui.html` | The browser frame (sidebar, toolbar, panels) |
 | `src/settings.html` | The Settings page (`halo://settings`) |
 | `src/newtab.html`, `src/themes.js` | New tab page and themes |
@@ -72,5 +92,6 @@ Settings, bookmarks, history, the session and downloads list are kept in `%LOCAL
 ## Developer options
 
 - `--screenshot <file.png>` — start, draw, save a picture of the window and exit (uses a separate temporary profile).
+- `--setup` / `--uninstall` — open the setup wizard or the uninstaller.
 - `--theme <id>` and `--layout vertical|horizontal` — start with a given look.
 - `--install-ext <store id>` — add a Chrome Web Store extension at start (for testing).

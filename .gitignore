@@ -4,6 +4,9 @@
 # Test screenshots made with --screenshot
 /shots
 
+# Installer made from the release build (attach it to a GitHub release instead)
+/dist
+
 # Editor and system files
 .vscode/
 .idea/

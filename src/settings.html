@@ -284,6 +284,8 @@ const PAGES = {
     return '<h2>About Halo</h2><div class="lead">A fast, light browser written in Rust.</div>' + card([
       row('Halo', 'Version ' + esc(D.version), ''),
       row('Page engine', 'Blink rendering and the V8 JavaScript engine' + (m ? ' (Chromium ' + esc(m[1]) + ')' : ''), ''),
+      (D.installed ? row('Default browser', 'Open Windows settings to make Halo the browser that opens links.', '<button class="btn" data-act="defaultApps">Make default</button>') : row('Install Halo', 'You are running Halo without installing it. Run HaloSetup.exe to add it to the Start menu and Windows.', '')) +
+      (D.installed ? row('Uninstall Halo', 'Remove Halo from this computer. You can choose whether to keep your data.', '<button class="btn ghost" data-act="uninstallHalo">Uninstall…</button>') : '') +
       row('Your data', esc(D.data_dir) + ' · ' + D.bookmarks + ' bookmarks, ' + D.history + ' sites in history', ''),
       row('Reset settings', 'Put every setting back to how it started. Bookmarks, history and extensions stay.', '<button class="btn danger" data-act="reset">Reset</button>')
     ]);

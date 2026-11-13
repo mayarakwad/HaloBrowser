@@ -19,7 +19,7 @@ pub const UI_URL: &str = "http://halo.localhost/ui";
 const UI_HTML: &str = include_str!("ui.html");
 const NEWTAB_HTML: &str = include_str!("newtab.html");
 const SETTINGS_HTML: &str = include_str!("settings.html");
-const THEMES_JS: &str = include_str!("themes.js");
+pub const THEMES_JS: &str = include_str!("themes.js");
 
 /// Engine switches handed to Blink/V8. The same switches are compiled into the
 /// original (GPU rasterization, zero-copy uploads, parallel downloading).
