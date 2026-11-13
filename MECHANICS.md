@@ -47,3 +47,13 @@ Sections in the style of privacy-first Chromium browsers such as Helium (the exa
 - **Extensions**: add from a Chrome Web Store link or id (downloaded as a CRX for Chromium 138.0.7204.303, unpacked, loaded into the engine profile), "Add to Halo" button in the address bar on Web Store pages, install from a .crx/.zip, load unpacked folder, on/off, remove, open pop-up or options page in a tab, popular list. The engine's built-in Microsoft helpers are hidden.
 - **System** (after restart): graphics acceleration, allow extensions, proxy (`http://host:port` or `socks5://host:port`); custom user agent for new tabs; Restart now.
 - **About**: version, engine (Chromium version read from the engine), data folder, reset settings.
+
+## Setup wizard and uninstaller
+
+- The same program is the installer: named `HaloSetup.exe` (any name containing "setup" or "install") or started with `--setup`, it opens the wizard; `--uninstall` opens the uninstaller.
+- Steps: Welcome (offers to update an existing install) → Location (default `%LOCALAPPDATA%\Programs\Halo`, Start menu shortcut, desktop shortcut, register as a web browser — all on by default) → Look (theme, side/top tabs, search engine; Google preselected) → Install (progress) → Finish (open Halo now, make default browser).
+- Per-user install, no administrator rights: copies the program as `Halo.exe`, writes the "Installed apps" entry (name, version, icon, size, install date, uninstall command) and, when chosen, the browser registration (http/https and .htm/.html/.pdf/.svg/.webp) so Windows' Default apps can pick Halo.
+- Updating moves a running older copy aside (`Halo.old.exe`) instead of failing.
+- Uninstall removes shortcuts, the browser registration and the "Installed apps" entry, optionally the browsing data, then the program folder once the uninstaller has closed (only a folder named Halo).
+- Without the WebView2 runtime the installer explains what is missing and opens Microsoft's download page.
+- The program carries its icon (16–256 px) and version details.
