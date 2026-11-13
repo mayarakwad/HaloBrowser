@@ -51,3 +51,10 @@ jobs:
             dist/Halo-*-windows-x64.zip
             dist/SHA256.txt
           fail_on_unmatched_files: true
+          generate_release_notes: true
+          append_body: true
+          body: |
+            ## Install
+            Download **HaloSetup.exe** below and open it. If Windows says *Windows protected your PC*, click **More info** then **Run anyway** (Halo isn't code-signed yet).
+
+            Already using Halo? Run the new HaloSetup.exe: it updates Halo and keeps your bookmarks, settings and account.
