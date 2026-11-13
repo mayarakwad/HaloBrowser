@@ -188,6 +188,7 @@ impl App {
             "downloads_total": self.store.downloads.len(),
             "extensions": self.extensions_json(),
             "installing": self.installing,
+            "account": crate::account::public(&self.store.account),
         });
         let _ = self.ui.evaluate_script(&format!("window.halo&&halo.update({state})"));
         self.push_pages();
@@ -218,6 +219,11 @@ impl App {
             "data_dir": self.dir.display().to_string(),
             "default_download_dir": default_download_dir().display().to_string(),
             "installed": installed(),
+            "account": crate::account::public(&self.store.account),
+            "has_local": self.store.local_account.is_some(),
+            "google": crate::account::google_configured(),
+            "account_wait": self.account_wait,
+            "account_error": self.account_error,
         });
         let js = format!("window.haloPage&&haloPage.update({state})");
         for t in pages {

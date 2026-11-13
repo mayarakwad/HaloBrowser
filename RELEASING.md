@@ -16,6 +16,11 @@ yourself: when you publish a release, GitHub builds Halo and attaches the instal
 
 That lets the automatic build attach files to your releases.
 
+5. **Google sign-in (optional):** so released installers have *Continue with Google*, add your
+   Google sign-in file as a secret: **Settings → Secrets and variables → Actions → New repository
+   secret**, name `GOOGLE_CLIENT_JSON`, value = the whole contents of the JSON file.
+   See [google/README.md](google/README.md).
+
 ---
 
 ## Publishing a release (every time)

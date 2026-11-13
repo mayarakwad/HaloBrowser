@@ -3,6 +3,7 @@
 //! WebView2 runtime on Windows); the frame (tabs, address bar, themes,
 //! settings, downloads, extensions) is ours.
 
+mod account;
 mod app;
 mod capture;
 mod common;
@@ -181,6 +182,9 @@ fn main() {
         installing: Vec::new(),
         ext_error: String::new(),
         next_download,
+        account_cancel: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        account_wait: false,
+        account_error: String::new(),
     };
     app.refresh_shared();
     if app.boot.extensions_enabled {

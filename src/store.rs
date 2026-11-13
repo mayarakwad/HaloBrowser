@@ -173,6 +173,22 @@ pub struct Extension {
     pub icon: String,
 }
 
+/// Who is signed in to Halo on this computer.
+#[derive(Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct Account {
+    /// "google" or "local"
+    pub kind: String,
+    pub name: String,
+    pub email: String,
+    /// Google profile picture address (Google accounts only).
+    pub picture: String,
+    pub created: u64,
+    /// Local accounts: salted, stretched password hash (never the password itself).
+    pub salt: String,
+    pub hash: String,
+}
+
 #[derive(Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Store {
@@ -183,6 +199,10 @@ pub struct Store {
     pub session_active: usize,
     pub downloads: Vec<Download>,
     pub extensions: Vec<Extension>,
+    /// The signed-in account, if any.
+    pub account: Option<Account>,
+    /// A local Halo account kept on this computer while signed out, so you can log in again.
+    pub local_account: Option<Account>,
 }
 
 pub const HISTORY_LIMIT: usize = 2000;

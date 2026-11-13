@@ -37,6 +37,7 @@ pub enum Mode {
 
 enum SEv {
     Ui(String),
+    Account(Result<crate::store::Account, String>),
     Progress(u32, String),
     Done(Result<(), String>),
 }
@@ -230,6 +231,7 @@ struct Opts {
     theme: String,
     layout: String,
     engine: String,
+    account: Option<crate::store::Account>,
 }
 
 fn install(o: &Opts, step: &dyn Fn(u32, &str)) -> Result<PathBuf, String> {
@@ -291,6 +293,11 @@ fn install(o: &Opts, step: &dyn Fn(u32, &str)) -> Result<PathBuf, String> {
     store.settings.custom_bg = false;
     store.settings.layout = if o.layout == "horizontal" { "horizontal".into() } else { "vertical".into() };
     store.settings.engine = o.engine.clone();
+    // Whoever is signed in when Install is pressed (nobody if they skipped or signed out).
+    store.account = o.account.clone();
+    if let Some(a) = o.account.as_ref().filter(|a| a.kind == "local") {
+        store.local_account = Some(a.clone());
+    }
     store.save(&data);
     pause();
 
@@ -399,12 +406,18 @@ pub fn run(mode: Mode, shot: Option<PathBuf>) {
     }
 
     let existing = installed_dir();
+    let saved = crate::store::Store::load(&data_dir(false));
     let init = json!({
         "mode": if mode == Mode::Install { "install" } else { "uninstall" },
         "version": VERSION,
         "engine": engine.unwrap_or_default(),
         "default_dir": default_dir().display().to_string(),
         "installed_dir": existing.as_ref().map(|d| d.display().to_string()),
+        "google": crate::account::google_configured(),
+        "account": crate::account::public(&saved.account),
+        "has_local": saved.local_account.is_some(),
+        // test option: open the wizard on a given step (--setup-page account)
+        "start": std::env::args().skip_while(|a| a != "--setup-page").nth(1),
     });
     let px = proxy.clone();
     let inner = window.inner_size();
@@ -427,6 +440,9 @@ pub fn run(mode: Mode, shot: Option<PathBuf>) {
         .expect("could not start the page engine");
 
     let mut installed_exe: Option<PathBuf> = None;
+    let mut account: Option<crate::store::Account> = saved.account.clone();
+    let local_saved = saved.local_account.clone();
+    let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let mut remove_dir: Option<PathBuf> = None;
     let mut launch = false;
     let start = Instant::now();
@@ -449,6 +465,17 @@ pub fn run(mode: Mode, shot: Option<PathBuf>) {
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => done = true,
             Event::UserEvent(SEv::Progress(pct, text)) => {
                 let _ = webview.evaluate_script(&format!("setup.progress({pct}, {})", Value::String(text)));
+            }
+            Event::UserEvent(SEv::Account(r)) => {
+                let arg = match r {
+                    Ok(a) => {
+                        let p = crate::account::public(&Some(a.clone()));
+                        account = Some(a);
+                        format!("{p}, null")
+                    }
+                    Err(e) => format!("null, {}", Value::String(e)),
+                };
+                let _ = webview.evaluate_script(&format!("setup.account({arg})"));
             }
             Event::UserEvent(SEv::Done(r)) => {
                 let arg = match r {
@@ -480,6 +507,7 @@ pub fn run(mode: Mode, shot: Option<PathBuf>) {
                             theme: v["theme"].as_str().unwrap_or("aurora").to_string(),
                             layout: v["layout"].as_str().unwrap_or("vertical").to_string(),
                             engine: v["engine"].as_str().unwrap_or("google").to_string(),
+                            account: account.clone(),
                         };
                         let o = if o.dir.as_os_str().is_empty() { Opts { dir: default_dir(), ..o } } else { o };
                         installed_exe = Some(o.dir.join(EXE_NAME));
@@ -504,6 +532,25 @@ pub fn run(mode: Mode, shot: Option<PathBuf>) {
                             let _ = p.send_event(SEv::Done(r));
                         });
                     }
+                    "google" => {
+                        cancel.store(false, std::sync::atomic::Ordering::SeqCst);
+                        let (p, c) = (proxy.clone(), cancel.clone());
+                        std::thread::spawn(move || {
+                            let _ = p.send_event(SEv::Account(crate::account::google_sign_in(c)));
+                        });
+                    }
+                    "googleCancel" => cancel.store(true, std::sync::atomic::Ordering::SeqCst),
+                    "createAccount" => {
+                        let s = |k: &str| v[k].as_str().unwrap_or("").to_string();
+                        let r = crate::account::create_local(&s("name"), &s("email"), &s("password"));
+                        let _ = proxy.send_event(SEv::Account(r));
+                    }
+                    "login" => {
+                        let s = |k: &str| v[k].as_str().unwrap_or("").to_string();
+                        let r = crate::account::log_in_local(local_saved.as_ref(), &s("email"), &s("password"));
+                        let _ = proxy.send_event(SEv::Account(r));
+                    }
+                    "signOut" => account = None,
                     "defaultApps" => open_default_apps(),
                     "finish" => {
                         launch = v["launch"].as_bool().unwrap_or(false);

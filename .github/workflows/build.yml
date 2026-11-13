@@ -25,6 +25,8 @@ jobs:
 
       - name: Build
         run: cargo build --release --locked
+        env:
+          HALO_GOOGLE_CLIENT_JSON: ${{ secrets.GOOGLE_CLIENT_JSON }}
 
       - name: Make the installer
         shell: pwsh

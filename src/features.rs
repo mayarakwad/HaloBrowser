@@ -262,6 +262,26 @@ impl App {
         self.new_tab(&url, true);
     }
 
+    // ---------- accounts ----------
+
+    fn signed_in(&mut self, r: Result<crate::store::Account, String>) {
+        self.account_wait = false;
+        match r {
+            Ok(a) => {
+                self.account_error.clear();
+                if a.kind == "local" {
+                    self.store.local_account = Some(a.clone());
+                }
+                let msg = format!("Signed in as {}", if a.name.is_empty() { &a.email } else { &a.name });
+                self.store.account = Some(a);
+                self.dirty = true;
+                self.toast(&msg);
+            }
+            Err(e) => self.account_error = e,
+        }
+        self.push();
+    }
+
     // ---------- messages ----------
 
     pub fn on_ui(&mut self, msg: &str) {
@@ -435,6 +455,43 @@ impl App {
                 #[cfg(windows)]
                 crate::setup::start_uninstaller();
             }
+            // accounts
+            "google" => {
+                if !self.account_wait {
+                    self.account_wait = true;
+                    self.account_error.clear();
+                    self.account_cancel.store(false, std::sync::atomic::Ordering::SeqCst);
+                    let (p, c) = (self.proxy.clone(), self.account_cancel.clone());
+                    std::thread::spawn(move || {
+                        let _ = p.send_event(Ev::Account(crate::account::google_sign_in(c)));
+                    });
+                    self.push();
+                }
+            }
+            "googleCancel" => self.account_cancel.store(true, std::sync::atomic::Ordering::SeqCst),
+            "createAccount" => {
+                let r = crate::account::create_local(&s("name"), &s("email"), &s("password"));
+                self.signed_in(r);
+            }
+            "login" => {
+                let r = crate::account::log_in_local(self.store.local_account.as_ref(), &s("email"), &s("password"));
+                self.signed_in(r);
+            }
+            "signOut" => {
+                self.store.account = None;
+                self.account_error.clear();
+                self.dirty = true;
+                self.toast("Signed out");
+                self.push();
+            }
+            "forgetLocal" => {
+                self.store.local_account = None;
+                if self.store.account.as_ref().map(|a| a.kind == "local").unwrap_or(false) {
+                    self.store.account = None;
+                }
+                self.dirty = true;
+                self.push();
+            }
             "restart" => {
                 self.restart = true;
                 self.quit = true;
@@ -568,6 +625,7 @@ impl App {
             Ev::ExtAdded(id, folder, r) => self.ext_added(id, folder, r),
             Ev::ExtList(list) => self.ext_list(list),
             Ev::ExtChanged => self.ext_refresh(),
+            Ev::Account(r) => self.signed_in(r),
         }
     }
 }

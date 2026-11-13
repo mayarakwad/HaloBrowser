@@ -7,6 +7,9 @@
 # Installer made from the release build (attach it to a GitHub release instead)
 /dist
 
+# Google sign-in file (secret: kept on your computer and in a GitHub secret only)
+/google/*.json
+
 # Editor and system files
 .vscode/
 .idea/

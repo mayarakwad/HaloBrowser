@@ -100,6 +100,7 @@ pub enum Ev {
     ExtAdded(String, PathBuf, Result<crate::ext::EngineExt, String>),
     ExtList(Vec<crate::ext::EngineExt>),
     ExtChanged,
+    Account(Result<crate::store::Account, String>),
 }
 
 /// What the page handlers (which may run on other threads) need to read.
@@ -168,6 +169,10 @@ pub struct App {
     pub installing: Vec<String>,
     pub ext_error: String,
     pub next_download: u64,
+    /// Google sign-in in progress (and how to cancel it), and the last sign-in problem.
+    pub account_cancel: Arc<std::sync::atomic::AtomicBool>,
+    pub account_wait: bool,
+    pub account_error: String,
 }
 
 pub fn now_secs() -> u64 {

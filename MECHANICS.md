@@ -57,3 +57,11 @@ Sections in the style of privacy-first Chromium browsers such as Helium (the exa
 - Uninstall removes shortcuts, the browser registration and the "Installed apps" entry, optionally the browsing data, then the program folder once the uninstaller has closed (only a folder named Halo).
 - Without the WebView2 runtime the installer explains what is missing and opens Microsoft's download page.
 - The program carries its icon (16–256 px) and version details.
+
+## Accounts
+
+- Setup wizard step 2 "Account" (Welcome → Account → Location → Look → Install → Finish) and Settings → Account; a person button in the toolbar shows the signed-in picture or initial.
+- **Continue with Google**: OAuth 2.0 for desktop apps — the person signs in in their own web browser; Google returns to a one-time `http://127.0.0.1:<port>` address; PKCE (S256) and a random state protect it; scopes `openid email profile`; waits up to 5 minutes, can be cancelled. Halo keeps only name, email and picture address — no Google tokens.
+- The Google client comes from the first `google/*.json` file (a "Desktop app" OAuth client) or the `HALO_GOOGLE_CLIENT_JSON` setting at build time; without it the button is shown greyed out. The file is git-ignored; GitHub builds read it from the `GOOGLE_CLIENT_JSON` secret.
+- **Halo account** (on this computer): name, email, password of at least 8 characters, stored as a salted SHA-256 hash stretched 120,000 times; log in again after signing out; can be removed in Settings.
+- Signing in or out never deletes bookmarks, history or settings.
