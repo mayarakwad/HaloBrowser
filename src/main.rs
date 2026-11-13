@@ -9,6 +9,7 @@ mod capture;
 mod common;
 mod ext;
 mod features;
+mod logo;
 #[cfg(windows)]
 mod setup;
 mod store;
@@ -29,6 +30,15 @@ use wry::{Rect, WebContext, WebViewBuilder};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    // --export-logo <folder>: write the logo as PNG pictures, an .ico and an .svg.
+    if let Some(dir) = args.iter().position(|a| a == "--export-logo").and_then(|i| args.get(i + 1)) {
+        match export_logo(std::path::Path::new(dir)) {
+            Ok(n) => println!("wrote {n} logo files to {dir}"),
+            Err(e) => eprintln!("could not write the logo: {e}"),
+        }
+        return;
+    }
 
     // Installer and uninstaller: "HaloSetup.exe" (or --setup) opens the setup wizard,
     // --uninstall is what Windows runs from "Installed apps".
@@ -300,4 +310,22 @@ fn window_handle(w: &Window) -> isize {
 #[cfg(not(windows))]
 fn window_handle(_w: &Window) -> isize {
     0
+}
+
+fn export_logo(dir: &std::path::Path) -> Result<usize, String> {
+    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    let mut n = 0;
+    for size in [16u32, 32, 48, 64, 128, 256, 512, 1024] {
+        let path = dir.join(format!("halo-logo-{size}.png"));
+        let file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
+        let mut enc = png::Encoder::new(std::io::BufWriter::new(file), size, size);
+        enc.set_color(png::ColorType::Rgba);
+        enc.set_depth(png::BitDepth::Eight);
+        let mut w = enc.write_header().map_err(|e| e.to_string())?;
+        w.write_image_data(&logo::draw(size)).map_err(|e| e.to_string())?;
+        n += 1;
+    }
+    std::fs::write(dir.join("halo.ico"), logo::ico()).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("halo-logo.svg"), logo::svg()).map_err(|e| e.to_string())?;
+    Ok(n + 2)
 }

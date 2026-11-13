@@ -1,3 +1,5 @@
+<p align="center"><img src="branding/halo-logo-128.png" width="96" alt="Halo logo"></p>
+
 # Halo
 
 A fast, light web browser for Windows, written in Rust.
@@ -90,6 +92,8 @@ Settings, bookmarks, history, the session and downloads list are kept in `%LOCAL
 | `src/store.rs` | Settings and saved data |
 | `src/capture.rs` | Window screenshot (used by `--screenshot <file.png>`) |
 | `src/setup.rs`, `src/setup.html` | Setup wizard and uninstaller |
+| `branding/` | The Halo logo: PNG pictures (16–1024 px), `halo.ico` and `halo-logo.svg` (made with `--export-logo <folder>`) |
+| `src/logo.rs` | Draws the logo (used for the program icon, the window icon and the logo files) |
 | `build.rs` | Draws the app icon and adds it, with version details, to the program |
 | `src/ui.html` | The browser frame (sidebar, toolbar, panels) |
 | `src/settings.html` | The Settings page (`halo://settings`) |

@@ -328,23 +328,8 @@ pub fn protocol(
 }
 
 pub fn app_icon() -> Option<Icon> {
-    // A small round gradient mark, drawn in code.
-    let n = 32u32;
-    let mut px = Vec::with_capacity((n * n * 4) as usize);
-    for y in 0..n {
-        for x in 0..n {
-            let dx = x as f32 - 15.5;
-            let dy = y as f32 - 15.5;
-            let d = (dx * dx + dy * dy).sqrt();
-            let a = ((15.5 - d) * 2.0).clamp(0.0, 1.0);
-            let t = (dy.atan2(dx) / std::f32::consts::TAU + 0.5).fract();
-            let r = (94.0 + 150.0 * t) as u8;
-            let g = (234.0 - 120.0 * t) as u8;
-            let b = (212.0 + 30.0 * (1.0 - t)) as u8;
-            px.extend_from_slice(&[r, g, b, (a * 255.0) as u8]);
-        }
-    }
-    Icon::from_rgba(px, n, n).ok()
+    // The same logo as the program file and the exported logo pictures.
+    Icon::from_rgba(crate::logo::draw(32), 32, 32).ok()
 }
 
 /// Options every web view must share (they all live in one engine process).
