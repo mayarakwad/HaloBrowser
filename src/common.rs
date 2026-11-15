@@ -23,8 +23,17 @@ pub const THEMES_JS: &str = include_str!("themes.js");
 
 /// Engine switches handed to Blink/V8. The same switches are compiled into the
 /// original (GPU rasterization, zero-copy uploads, parallel downloading).
-pub const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection \
---enable-features=ParallelDownloading --enable-gpu-rasterization --enable-zero-copy";
+pub const BROWSER_ARGS: &str = "--enable-features=ParallelDownloading --enable-gpu-rasterization --enable-zero-copy";
+
+/// Engine features switched off. SmartScreen (download and site safety checks) stays on
+/// unless the person turns it off in Settings.
+fn disabled_features(boot: &Settings) -> String {
+    let mut f = vec!["msWebOOUI", "msPdfOOUI"];
+    if !boot.safe_downloads {
+        f.push("msSmartScreenProtection");
+    }
+    format!("--disable-features={}", f.join(","))
+}
 
 /// Chromium's preset zoom steps (zoom in/out move to the next one).
 pub const ZOOM_STEPS: [f64; 17] = [
@@ -96,6 +105,10 @@ pub enum Ev {
     Upgrade(u32, String),
     DlStart(String, PathBuf),
     DlDone(String, Option<PathBuf>, bool),
+    /// address, bytes received, total bytes (0 = unknown)
+    DlProgress(String, u64, u64),
+    /// address, cancelled / blocked / failed, reason in plain words
+    DlStopped(String, String, String),
     ExtUnpacked(String, Result<PathBuf, String>),
     ExtAdded(String, PathBuf, Result<crate::ext::EngineExt, String>),
     ExtList(Vec<crate::ext::EngineExt>),
@@ -124,6 +137,9 @@ pub struct Tab {
     pub zoom: f64,
     pub view: Option<WebView>,
     pub last_active: Instant,
+    /// The address the tab was opened with, and whether it has shown a real page since.
+    pub opened: String,
+    pub shown: bool,
 }
 
 impl Tab {
@@ -139,6 +155,8 @@ impl Tab {
             zoom,
             view: None,
             last_active: Instant::now(),
+            opened: url.into(),
+            shown: !title.is_empty(),
         }
     }
 }
@@ -175,6 +193,11 @@ pub struct App {
     pub account_wait: bool,
     pub account_error: String,
     pub account_url: String,
+    /// Running downloads (for pause / resume / cancel) and whether the list changed.
+    pub dl_ops: crate::dlwatch::Ops,
+    pub dl_changed: bool,
+    /// Hidden page views kept alive until their download finishes (closing one would stop it).
+    pub parked: std::collections::HashMap<String, WebView>,
 }
 
 pub fn now_secs() -> u64 {
@@ -367,7 +390,7 @@ pub fn engine_options<'a>(b: WebViewBuilder<'a>, boot: &Settings) -> WebViewBuil
     #[cfg(windows)]
     let b = {
         use wry::WebViewBuilderExtWindows;
-        let mut args = BROWSER_ARGS.to_string();
+        let mut args = format!("{} {BROWSER_ARGS}", disabled_features(boot));
         if !boot.hardware_acceleration {
             args.push_str(" --disable-gpu --disable-gpu-compositing");
         }

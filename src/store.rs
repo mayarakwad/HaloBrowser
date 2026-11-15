@@ -63,6 +63,8 @@ pub struct Settings {
     pub user_agent: String,
     pub default_zoom: f64,
     pub extensions_enabled: bool,
+    /// Microsoft Defender SmartScreen checks downloads and sites for danger.
+    pub safe_downloads: bool,
 }
 
 impl Default for Settings {
@@ -117,6 +119,7 @@ impl Default for Settings {
             user_agent: String::new(),
             default_zoom: 1.0,
             extensions_enabled: true,
+            safe_downloads: true,
         }
     }
 }
@@ -153,6 +156,10 @@ pub struct Download {
     pub state: String,
     pub started: u64,
     pub bytes: u64,
+    /// Full size when the website says it (0 = unknown).
+    pub total: u64,
+    /// Why it stopped, in plain words.
+    pub error: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Default)]

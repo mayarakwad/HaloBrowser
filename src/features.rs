@@ -24,20 +24,33 @@ impl App {
             state: "downloading".into(),
             started: now_secs(),
             bytes: 0,
+            total: 0,
+            error: String::new(),
         });
         self.store.downloads.truncate(200);
         self.dirty = true;
-        // A tab that was opened only to fetch this file has nothing to show: close it (as Chromium does).
-        let url = &self.store.downloads[0].url;
-        let blank = self
-            .tabs
-            .iter()
-            .find(|t| &t.url == url && (t.title.is_empty() || t.title == "about:blank"))
-            .map(|t| t.id);
-        if let Some(tid) = blank {
-            if self.tabs.len() > 1 {
-                self.close_tab(tid);
+        // The page that started a download stays where it was: put its address back and stop
+        // its loading spinner (the address bar briefly showed the file's link).
+        // A tab opened only to fetch this file has nothing to show: close it (as Chromium does).
+        let url = self.store.downloads[0].url.clone();
+        let mut blank = Vec::new();
+        for t in self.tabs.iter_mut().filter(|t| t.url == url || t.opened == url) {
+            if !t.shown {
+                // opened for this file and never showed a page
+                blank.push(t.id);
+                continue;
             }
+            let cur = t.view.as_ref().and_then(|v| v.url().ok()).unwrap_or_default();
+            if t.url != url || cur.is_empty() || cur == "about:blank" {
+                t.loading = false;
+                continue;
+            } else {
+                t.url = cur;
+            }
+            t.loading = false;
+        }
+        for tid in blank {
+            self.park_tab(tid, &url);
         }
         self.push();
         if self.store.settings.show_downloads_on_start {
@@ -46,9 +59,11 @@ impl App {
     }
 
     pub fn download_done(&mut self, url: String, path: Option<PathBuf>, ok: bool) {
+        self.parked.remove(&url);
+        self.last_load_done = 0; // let the page redraw before a test picture
         eprintln!("download done: {url} ok={ok} path={path:?}");
         let mut msg = None;
-        if let Some(d) = self.store.downloads.iter_mut().find(|d| d.url == url && d.state == "downloading") {
+        if let Some(d) = self.store.downloads.iter_mut().find(|d| d.url == url && (d.state == "downloading" || d.state == "paused")) {
             d.state = if ok { "done".into() } else { "failed".into() };
             if let Some(p) = path {
                 d.path = p.display().to_string();
@@ -57,7 +72,11 @@ impl App {
             if let Ok(m) = std::fs::metadata(&d.path) {
                 d.bytes = m.len();
             }
-            msg = Some(if ok { format!("Downloaded {}", d.file) } else { format!("Download failed: {}", d.file) });
+            if ok {
+                d.total = d.bytes;
+                msg = Some(format!("Downloaded {}", d.file));
+            }
+            // A stop is announced by download_stopped, which knows why (cancelled, blocked, network...).
         }
         if let Some(m) = msg {
             self.toast(&m);
@@ -66,22 +85,61 @@ impl App {
         self.push();
     }
 
-    /// Bytes received so far, read from the file being written.
-    pub fn poll_downloads(&mut self) {
-        let mut changed = false;
-        for d in self.store.downloads.iter_mut().filter(|d| d.state == "downloading") {
-            let mut size = 0;
-            for p in [d.path.clone(), format!("{}.crdownload", d.path)] {
-                if let Ok(m) = std::fs::metadata(&p) {
-                    size = size.max(m.len());
-                }
-            }
-            if size != d.bytes {
-                d.bytes = size;
-                changed = true;
+    /// Take a tab off the strip but keep its page alive in the background until its
+    /// download is finished (the engine stops a download whose page is closed).
+    fn park_tab(&mut self, id: u32, url: &str) {
+        let Some(i) = self.index(id) else { return };
+        let mut t = self.tabs.remove(i);
+        if let Some(v) = t.view.take() {
+            let _ = v.set_visible(false);
+            self.parked.insert(url.to_string(), v);
+        }
+        if self.tabs.is_empty() {
+            self.new_tab(NEWTAB, true);
+        } else if self.active == id {
+            let next = self.tabs[i.min(self.tabs.len() - 1)].id;
+            self.activate(next, true);
+        }
+        self.dirty = true;
+    }
+
+    /// Progress from the engine; shown at most about once a second (see poll_downloads).
+    pub fn download_progress(&mut self, url: String, got: u64, total: u64) {
+        if let Some(d) = self.store.downloads.iter_mut().find(|d| d.url == url && (d.state == "downloading" || d.state == "paused")) {
+            d.bytes = got;
+            d.total = total;
+            self.dl_changed = true;
+        }
+    }
+
+    /// The engine says why a download stopped.
+    pub fn download_stopped(&mut self, url: String, kind: String, reason: String) {
+        self.parked.remove(&url);
+        self.last_load_done = 0;
+        let mut msg = None;
+        if let Some(d) = self
+            .store
+            .downloads
+            .iter_mut()
+            .find(|d| d.url == url && matches!(d.state.as_str(), "failed" | "downloading" | "paused"))
+        {
+            d.state = kind.clone();
+            d.error = reason.clone();
+            if kind != "cancelled" {
+                msg = Some(format!("{}: {}", d.file, reason));
             }
         }
-        if changed {
+        if let Some(m) = msg {
+            self.toast(&m);
+        }
+        self.dirty = true;
+        self.push();
+    }
+
+    /// Show download progress gathered since the last tick.
+    pub fn poll_downloads(&mut self) {
+        if self.dl_changed {
+            self.dl_changed = false;
             self.push();
         }
     }
@@ -404,15 +462,29 @@ impl App {
                 if let Some(d) = self.store.downloads.iter().find(|d| d.id == did) {
                     let url = d.url.clone();
                     self.store.downloads.retain(|d| d.id != did);
-                    // Fetch it again in the background through the current page.
-                    if let Some(view) = self.active_view() {
-                        let _ = view.evaluate_script(&format!(
-                            "(function(){{var a=document.createElement('a');a.href={};a.download='';document.body.appendChild(a);a.click();a.remove();}})()",
-                            Value::String(url)
-                        ));
-                    }
+                    // Fetch it again in a background tab, which closes itself once the
+                    // download starts; the page you're on (e.g. Settings) stays put.
+                    self.new_tab(&url, false);
                     self.push();
                 }
+            }
+            "pauseDownload" | "resumeDownload" | "cancelDownload" => {
+                let did = v["id"].as_u64().unwrap_or(0);
+                let action = cmd.trim_end_matches("Download").to_string();
+                if let Some(d) = self.store.downloads.iter_mut().find(|d| d.id == did) {
+                    if crate::dlwatch::control(&self.dl_ops, &d.url, &action) {
+                        match action.as_str() {
+                            "pause" => d.state = "paused".into(),
+                            "resume" => d.state = "downloading".into(),
+                            _ => {}
+                        }
+                    } else if action == "resume" {
+                        d.state = "failed".into();
+                        d.error = "Can't continue this download; try Retry".into();
+                    }
+                    self.dirty = true;
+                }
+                self.push();
             }
             "clearDownloads" => {
                 self.store.downloads.retain(|d| d.state == "downloading");
@@ -573,6 +645,10 @@ impl App {
             Ev::Title(id, t) => {
                 if let Some(i) = self.index(id) {
                     let url = self.tabs[i].url.clone();
+                    // a real title means a real page is showing (not a placeholder while loading)
+                    if !t.is_empty() && t != "about:blank" && !url.contains(t.as_str()) {
+                        self.tabs[i].shown = true;
+                    }
                     self.tabs[i].title = t.clone();
                     if !is_internal(&url) {
                         self.store.set_title(&url, &t);
@@ -630,6 +706,8 @@ impl App {
             }
             Ev::DlStart(url, path) => self.download_started(url, path),
             Ev::DlDone(url, path, ok) => self.download_done(url, path, ok),
+            Ev::DlProgress(url, got, total) => self.download_progress(url, got, total),
+            Ev::DlStopped(url, kind, reason) => self.download_stopped(url, kind, reason),
             Ev::ExtUnpacked(id, r) => self.ext_unpacked(id, r),
             Ev::ExtAdded(id, folder, r) => self.ext_added(id, folder, r),
             Ev::ExtList(list) => self.ext_list(list),

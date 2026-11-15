@@ -71,3 +71,12 @@ Sections in the style of privacy-first Chromium browsers such as Helium (the exa
 - The installer registers Halo for .htm, .html, .shtml, .xhtml, .svg, .webp and .pdf, so Windows lists it under *Open with* and Default apps.
 - A file path Windows passes (`C:\folder\file.pdf`, `\\server\share\page.htm`, with or without quotes) opens as a `file:///` page instead of being searched; typing such a path in the address bar does the same. PDFs open in the engine's PDF viewer (zoom, search, print, save).
 
+
+## Downloads (1.1.3)
+
+- Progress comes from the engine itself: bytes received and total size, shown about once a second as `x MB of y MB (n%)` with a progress bar (an animated bar when the size is unknown).
+- Pause, Resume and Cancel for running downloads; finished ones have Open and Show in folder; cancelled or failed ones have Retry, which fetches again in a hidden background tab (the page you're on, e.g. Settings, stays).
+- Why a download stopped is shown in plain words: Cancelled, Blocked (harmful file, Windows policy, virus check), disk full, no permission, network dropped/timed out, website refused, file gone.
+- A tab opened only to fetch a file is taken off the tab strip but kept alive in the background until the download ends (closing it would stop the download). A page that starts a download keeps its own address and stops its loading spinner.
+- Microsoft Defender SmartScreen checks downloads and sites (Settings → Privacy & security; on by default; takes effect after a restart).
+

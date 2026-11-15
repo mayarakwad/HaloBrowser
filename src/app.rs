@@ -140,7 +140,10 @@ impl App {
         }
         let builder = engine_options(builder, &boot);
         match builder.build_as_child(&self.window) {
-            Ok(v) => Some(v),
+            Ok(v) => {
+                crate::dlwatch::watch(&v, self.proxy.clone(), self.dl_ops.clone());
+                Some(v)
+            }
             Err(e) => {
                 eprintln!("could not open the page: {e}");
                 None
@@ -207,6 +210,7 @@ impl App {
                 "hardware_acceleration": self.boot.hardware_acceleration,
                 "proxy": self.boot.proxy,
                 "extensions_enabled": self.boot.extensions_enabled,
+                "safe_downloads": self.boot.safe_downloads,
             },
             "engines": engines,
             "downloads": self.store.downloads,

@@ -8,6 +8,7 @@ mod app;
 mod capture;
 mod common;
 mod ext;
+mod dlwatch;
 mod features;
 mod logo;
 #[cfg(windows)]
@@ -196,6 +197,9 @@ fn main() {
         account_wait: false,
         account_error: String::new(),
         account_url: String::new(),
+        dl_ops: dlwatch::new_ops(),
+        dl_changed: false,
+        parked: HashMap::new(),
     };
     app.refresh_shared();
     if app.boot.extensions_enabled {
@@ -264,6 +268,7 @@ fn main() {
             return;
         }
         if let Some(path) = &shot_path {
+            app.poll_downloads();
             // Screenshot run: draw about 120 frames (and let the first page settle), save, exit.
             let page_done = app.index(app.active).map(|i| !app.tabs[i].loading).unwrap_or(true);
             if (frames >= 120 && app.ui_ready && page_done && app.last_load_done >= 40 && app.installing.is_empty()

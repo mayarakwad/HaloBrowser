@@ -62,6 +62,8 @@ select option { background: #222; color: #eee; }
 .item .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item .d { color: var(--fg-dim); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item .acts { display: flex; gap: 6px; align-items: center; flex: none; }
+.pbar { height: 4px; border-radius: 2px; background: var(--hover); overflow: hidden; margin-top: 6px; }
+.pbar div { height: 100%; border-radius: 2px; background: var(--accent); transition: width .5s ease; }
 .bar { height: 4px; border-radius: 2px; background: var(--hover); overflow: hidden; margin-top: 6px; position: relative; }
 .bar::after { content: ''; position: absolute; top: 0; bottom: 0; width: 35%; background: var(--accent); border-radius: 2px; animation: indet 1.2s ease-in-out infinite; }
 @keyframes indet { from { left: -35%; } to { left: 100%; } }
@@ -228,12 +230,14 @@ const PAGES = {
     ]);
   },
   privacy() {
+    const restartNote = D.boot.safe_downloads !== S().safe_downloads ? '<div class="note" style="display:flex;align-items:center;gap:12px"><div style="flex:1">Restart Halo to apply the download safety change.</div><button class="btn" data-act="restart">Restart now</button></div>' : '';
     const hasUb = D.extensions.some(e => e.store_id === UBLOCK);
     const busy = D.installing.includes(UBLOCK);
-    return '<h2>Privacy & security</h2><div class="lead">Protections in the spirit of privacy-first browsers: fewer trackers, safer connections, less left behind.</div>' +
+    return '<h2>Privacy & security</h2><div class="lead">Protections in the spirit of privacy-first browsers: fewer trackers, safer connections, less left behind.</div>' + restartNote +
       '<h3>Protection</h3>' + card([
         row('Block ads and trackers', hasUb ? 'uBlock Origin Lite is installed and working on every site.' : 'Adds uBlock Origin Lite from the Chrome Web Store.', hasUb ? '<span class="state">On</span>' : busy ? '<span class="spin"></span>' : '<button class="btn" data-install="' + UBLOCK + '">Add blocker</button>'),
         tog('https_only', 'Always use secure connections (HTTPS-only)', 'Plain http:// sites on the internet are opened over https://.'),
+        tog('safe_downloads', 'Check downloads and sites for danger', 'Microsoft Defender SmartScreen warns about harmful files and fake websites. It sends the addresses of downloads and unfamiliar sites to Microsoft.', true),
         tog('block_popups', 'Block pop-up windows', 'Stops sites from opening extra windows; links that open a new window still become tabs.'),
         tog('javascript', 'Allow JavaScript', 'Most sites need it. Applies to tabs opened from now on.'),
         tog('autoplay', 'Allow videos to play by themselves', 'Applies to tabs opened from now on.'),
@@ -261,10 +265,23 @@ const PAGES = {
     const s = S();
     const list = D.downloads;
     const items = list.length ? list.map(d => {
-      const st = d.state === 'downloading' ? '<span class="state">' + (d.bytes ? size(d.bytes) + ' so far' : 'Starting…') + '</span>' : d.state === 'failed' ? '<span class="state failed">Failed</span>' : '<span class="state">' + size(d.bytes) + '</span>';
-      const acts = d.state === 'done' ? '<button class="btn ghost" data-dl="openDownload" data-id="' + d.id + '">Open</button><button class="btn ghost" data-dl="showDownload" data-id="' + d.id + '">Show in folder</button>'
-        : d.state === 'failed' ? '<button class="btn ghost" data-dl="retryDownload" data-id="' + d.id + '">Retry</button>' : '';
-      return '<div class="item" data-find="' + esc((d.file + ' ' + d.url).toLowerCase()) + '"><div class="ic">' + ICON.downloads + '</div><div class="t"><div class="nm">' + esc(d.file || 'download') + '</div><div class="d">' + esc(d.url) + ' · ' + when(d.started) + '</div>' + (d.state === 'downloading' ? '<div class="bar"></div>' : '') + '</div><div class="acts">' + st + acts + '<button class="btn ghost" data-dl="removeDownload" data-id="' + d.id + '" title="Remove from list">✕</button></div></div>';
+      const live = d.state === 'downloading' || d.state === 'paused';
+      const pct = d.total ? Math.min(100, Math.round(d.bytes * 100 / d.total)) : 0;
+      const sizeText = d.total ? size(d.bytes) + ' of ' + size(d.total) + ' (' + pct + '%)' : d.bytes ? size(d.bytes) + ' so far' : 'Starting…';
+      const st = d.state === 'downloading' ? '<span class="state">' + sizeText + '</span>'
+        : d.state === 'paused' ? '<span class="state">Paused · ' + sizeText + '</span>'
+        : d.state === 'cancelled' ? '<span class="state">Cancelled</span>'
+        : d.state === 'blocked' ? '<span class="state failed" title="' + esc(d.error) + '">Blocked</span>'
+        : d.state === 'failed' ? '<span class="state failed" title="' + esc(d.error) + '">Failed</span>'
+        : '<span class="state">' + size(d.bytes) + '</span>';
+      const b = (cmd, label) => '<button class="btn ghost" data-dl="' + cmd + '" data-id="' + d.id + '">' + label + '</button>';
+      const acts = d.state === 'done' ? b('openDownload', 'Open') + b('showDownload', 'Show in folder')
+        : d.state === 'downloading' ? b('pauseDownload', 'Pause') + b('cancelDownload', 'Cancel')
+        : d.state === 'paused' ? b('resumeDownload', 'Resume') + b('cancelDownload', 'Cancel')
+        : (d.state === 'failed' || d.state === 'cancelled') ? b('retryDownload', 'Retry') : '';
+      const bar = live ? (d.total ? '<div class="pbar"><div style="width:' + pct + '%"></div></div>' : '<div class="bar"></div>') : '';
+      const why = (d.state === 'failed' || d.state === 'blocked') && d.error ? '<div class="d" style="color:#fca5a5">' + esc(d.error) + '</div>' : '';
+      return '<div class="item" data-find="' + esc((d.file + ' ' + d.url).toLowerCase()) + '"><div class="ic">' + ICON.downloads + '</div><div class="t"><div class="nm">' + esc(d.file || 'download') + '</div><div class="d">' + esc(d.url) + ' · ' + when(d.started) + '</div>' + why + bar + '</div><div class="acts">' + st + acts + (live ? '' : '<button class="btn ghost" data-dl="removeDownload" data-id="' + d.id + '" title="Remove from list">✕</button>') + '</div></div>';
     }).join('') : '<div class="empty">Files you download appear here.</div>';
     return '<h2>Downloads</h2><div class="lead">Everything you downloaded, newest first (Ctrl+J).</div>' +
       '<h3>Files</h3><div class="card">' + items + '</div>' +
@@ -297,7 +314,7 @@ const PAGES = {
   },
   system() {
     const b = D.boot, s = S();
-    const changed = b.hardware_acceleration !== s.hardware_acceleration || b.proxy !== s.proxy || b.extensions_enabled !== s.extensions_enabled;
+    const changed = b.hardware_acceleration !== s.hardware_acceleration || b.proxy !== s.proxy || b.extensions_enabled !== s.extensions_enabled || b.safe_downloads !== s.safe_downloads;
     return '<h2>System</h2><div class="lead">Engine options. Some take effect when Halo starts again.</div>' +
       (changed ? '<div class="note" style="display:flex;align-items:center;gap:12px"><div style="flex:1">Restart Halo to apply your changes. Your tabs come back.</div><button class="btn" data-act="restart">Restart now</button></div>' : '') +
       card([
